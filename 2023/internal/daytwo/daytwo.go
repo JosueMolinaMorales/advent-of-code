@@ -44,18 +44,15 @@ func partOne(input string) int {
 		sets := strings.Split(l, "; ")
 		validGame := true
 		for _, set := range sets {
-			// fmt.Println(set)
 			colors := strings.Split(set, ", ")
 			for _, color := range colors {
-				// fmt.Println(color)
 				cs := strings.Split(color, " ")
 				count, err := strconv.Atoi(strings.TrimSpace(cs[0]))
 				if err != nil {
 					fmt.Printf("Failed to convert %s to a number\n", cs[0])
 				}
-				c := cs[1]
 
-				switch c {
+				switch cs[1] {
 				case "blue":
 					if count > MAX_BLUE {
 						validGame = false
@@ -73,12 +70,10 @@ func partOne(input string) int {
 			}
 		}
 		if validGame {
-			// fmt.Println("Game ", (i + 1), " is a valid game")
 			sum += (i + 1)
 		}
 	}
 
-	// fmt.Println(sum)
 	return sum
 }
 
