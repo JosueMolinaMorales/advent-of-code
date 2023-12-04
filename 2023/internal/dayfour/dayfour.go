@@ -114,7 +114,6 @@ func parseInput(input string) []Card {
 		for _, win := range strings.Split(numbers[0], " ") {
 			winNum, err := strconv.Atoi(strings.TrimSpace(win))
 			if err != nil {
-				// fmt.Printf("Could not convert %s to int\n", win)
 				continue
 			}
 			winning = append(winning, winNum)
@@ -123,7 +122,6 @@ func parseInput(input string) []Card {
 		for _, n := range strings.Split(numbers[1], " ") {
 			num, err := strconv.Atoi(strings.TrimSpace(n))
 			if err != nil {
-				// fmt.Printf("Could not convert %s to int\n", n)
 				continue
 			}
 
