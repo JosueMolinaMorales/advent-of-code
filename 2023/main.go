@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/josuemolinamorales/aoc-2023/internal/daythree"
+	"github.com/josuemolinamorales/aoc-2023/internal/dayfour"
 )
 
 func main() {
 	// dayone.RunDayOne()
 	// daytwo.RunDayTwo()
-	daythree.RunDayThree()
+	// daythree.RunDayThree()
+	dayfour.RunDayFour()
 }
