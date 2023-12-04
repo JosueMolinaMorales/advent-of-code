@@ -52,7 +52,7 @@ var adjPoints [][]int = [][]int{
 const GEAR rune = '*'
 
 func RunDayThree() {
-	input, err := os.ReadFile("./input/day3input.txt")
+	input, err := os.ReadFile("./input/day3binput.txt")
 	if err != nil {
 		panic("Could not read day 3 file")
 	}
