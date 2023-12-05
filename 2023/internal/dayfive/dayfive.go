@@ -184,6 +184,7 @@ func partTwo(input string) {
 			// 	})
 			// }
 		}
+		fmt.Println("Ranges", ranges)
 
 		// mapped := false
 		for rIdx, seed := range ranges {
