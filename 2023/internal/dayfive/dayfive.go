@@ -2,7 +2,7 @@ package dayfive
 
 import (
 	"fmt"
-	"math"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -65,12 +65,12 @@ type SeedRange struct {
 }
 
 func RunDayFive() {
-	// input, err := os.ReadFile("./input/day5input.txt")
-	// if err != nil {
-	// 	panic("Could not read day 5 input file")
-	// }
+	input, err := os.ReadFile("./input/day5input.txt")
+	if err != nil {
+		panic("Could not read day 5 input file")
+	}
 	// partOne(string(input))
-	partTwo(testInput)
+	partTwo(string(input))
 }
 
 func partOne(input string) {
@@ -126,65 +126,36 @@ func partTwo(input string) {
 
 		ranges := make([]SeedRange, 0)
 		for _, m := range foodMaps[fmIdx].Maps {
-			diff := -(m.SourceStart - m.DestinationStart)
-			// Case 1: Zero overlap
-			if (r.End < m.SourceStart) || (r.Start > m.SourceEnd) {
-				// fmt.Println("Case 1: Zero overlap")
+			// Case 1: There is no over
+			if r.End < m.SourceStart || r.Start > m.SourceEnd {
+				// fmt.Println("r.End < m.SourceStart || r.Start > m.SourceEnd")
 				ranges = append(ranges, SeedRange{
 					Start: r.Start,
 					End:   r.End,
 				})
 			} else {
-				overlapStart := int(math.Max(float64(r.Start), float64(m.SourceStart)))
-				overlapEnd := int(math.Min(float64(r.End), float64(m.SourceEnd)))
-
-				// Case 2: Complete overlap + handles overlap for cases 3-4
-				// Add the mapped overlapping range to mappings
-				ranges = append(ranges, SeedRange{
-					Start: overlapStart + diff,
-					End:   overlapEnd + diff,
-				})
-
-				// Case 3: Seed range is larger than source range
-				if r.Start < m.SourceStart {
+				// Case 2: THere is complete overlap
+				if r.Start >= m.SourceStart && r.End <= m.SourceEnd {
 					ranges = append(ranges, SeedRange{
 						Start: r.Start,
-						End:   overlapStart - 1,
-					})
-				}
-				// Case 4
-				if r.End > m.SourceEnd {
-					ranges = append(ranges, SeedRange{
-						Start: overlapEnd + 1,
 						End:   r.End,
+					})
+				} else if r.End > m.SourceEnd {
+					// Case 3: Seed start is less than the end of source range
+					ranges = append(ranges, SeedRange{
+						Start: m.SourceEnd + 1,
+						End:   r.End,
+					})
+				} else if r.Start < m.SourceStart {
+					// Case 4: Seed start is less than source start
+					ranges = append(ranges, SeedRange{
+						Start: r.Start,
+						End:   m.SourceStart - 1,
 					})
 				}
 			}
-
-			// if r.Start < m.SourceStart && r.End <= m.SourceEnd {
-			// 	// Case 2: Start is less than source start but end is within source range
-			// 	// fmt.Println("r.Start < m.SourceStart && r.End <= m.SourceEnd")
-			// 	ranges = append(ranges, SeedRange{
-			// 		Start: m.SourceStart,
-			// 		End:   r.End,
-			// 	})
-			// } else if r.Start >= m.SourceStart && r.End > m.SourceEnd {
-			// 	// Case 3: Start is in source range but end is greater than source end
-			// 	// fmt.Println("r.Start >= m.SourceStart && r.End > m.SourceEnd")
-			// 	ranges = append(ranges, SeedRange{
-			// 		Start: r.Start,
-			// 		End:   m.SourceEnd,
-			// 	})
-			// } else if r.Start < m.SourceStart && r.End > m.SourceEnd {
-			// 	// Case 4: Start and End are both inside source range
-			// 	// fmt.Println("r.Start < m.SourceStart && r.End > m.SourceEnd")
-			// 	ranges = append(ranges, SeedRange{
-			// 		Start: m.SourceStart,
-			// 		End:   m.SourceEnd,
-			// 	})
-			// }
 		}
-		fmt.Println("Ranges", ranges)
+		// fmt.Println("Ranges", ranges)
 
 		// mapped := false
 		for rIdx, seed := range ranges {
@@ -221,7 +192,7 @@ func partTwo(input string) {
 		if seedCount == 0 {
 			seedCount = len(seedRanges)
 			fmIdx += 1
-			fmt.Println("Onto Map", fmIdx+1)
+			fmt.Println("Onto Map", fmIdx+1, "with seed range count", seedCount)
 			continue
 		}
 	}
