@@ -7,6 +7,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/josuemolinamorales/aoc-2023/utils"
 )
 
 type Card struct {
@@ -80,7 +82,7 @@ func partTwo(input string) int {
 		// Get the number of wins for that card
 		w := wins[card]
 		// Add up the instances
-		for _, c := range makeRange(card+1, card+w) {
+		for _, c := range utils.MakeRange(card+1, card+w) {
 			instances[c] += 1
 			// Add to queue
 			queue = append(queue, c)
@@ -95,14 +97,6 @@ func partTwo(input string) int {
 	}
 
 	return sum
-}
-
-func makeRange(min, max int) []int {
-	a := make([]int, max-min+1)
-	for i := range a {
-		a[i] = min + i
-	}
-	return a
 }
 
 func parseInput(input string) []Card {
