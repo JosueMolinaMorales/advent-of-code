@@ -101,12 +101,10 @@ func partTwo(input string) int {
 		t = half * (time - half)
 	}
 
-	half = int(math.Floor(float64(time)/2.0)) + 1
-	t = half * (time - half)
-	for t > dist {
-		count += 1
-		half += 1
-		t = half * (time - half)
+	if count%2 == 0 {
+		count = count*2 - 1
+	} else {
+		count = count * 2
 	}
 
 	return count
