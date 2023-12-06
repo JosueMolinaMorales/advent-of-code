@@ -65,12 +65,10 @@ func partOne(input string) int {
 			time = half * (td.Time - half)
 		}
 
-		half = int(math.Floor(float64(td.Time)/2.0)) + 1
-		time = half * (td.Time - half)
-		for time > td.Distance {
-			count += 1
-			half += 1
-			time = half * (td.Time - half)
+		if count%2 == 0 {
+			count = count*2 - 1
+		} else {
+			count = count * 2
 		}
 
 		ans = ans * count
