@@ -47,6 +47,17 @@ humidity-to-location map:
 50, 51 maps to 98, 99
 */
 
+func RunDayFive() {
+	input, err := os.ReadFile("./input/day5input.txt")
+	if err != nil {
+		panic("Could not read day 5 input file")
+	}
+	res := partOne(string(input))
+	fmt.Println("Part one result: ", res)
+	res = partTwo(string(input))
+	fmt.Println("Part two result: ", res)
+}
+
 type MappingRange struct {
 	SourceStart      int
 	SourceEnd        int
@@ -64,16 +75,7 @@ type SeedRange struct {
 	End   int
 }
 
-func RunDayFive() {
-	input, err := os.ReadFile("./input/day5input.txt")
-	if err != nil {
-		panic("Could not read day 5 input file")
-	}
-	// partOne(string(input))
-	partTwo(string(input))
-}
-
-func partOne(input string) {
+func partOne(input string) int {
 	foodMaps, seeds := parseInput(input)
 	locations := make([]int, 0)
 
@@ -97,108 +99,73 @@ func partOne(input string) {
 	}
 
 	min := slices.Min(locations)
-	fmt.Println(min)
+
+	return min
 }
 
-func partTwo(input string) {
+func partTwo(input string) int {
 	foodMaps, seeds := parseInput(input)
-	// locations := make([]int, 0)
 	var seedRanges []SeedRange
 	i := 0
 	for i < len(seeds)-1 {
 		seedRanges = append(seedRanges, SeedRange{
 			Start: seeds[i],
-			End:   seeds[i] + seeds[i+1] - 1,
+			End:   seeds[i] + seeds[i+1],
 		})
 		i += 2
 	}
 
-	// minSeedRanges := []SeedRange
-	i = 0
-	// minLocation := math.MaxInt64
+	for _, fm := range foodMaps {
+		new_ranges := make([]SeedRange, 0)
+		for _, r := range seedRanges {
+			for _, m := range fm.Maps {
+				offset := m.DestinationStart - m.SourceStart
+				rule_applies := r.Start <= r.End && r.Start <= m.SourceEnd && r.End >= m.SourceStart
 
-	r := seedRanges[i]
-	seedCount := len(seedRanges)
-	fmIdx := 0
-	for fmIdx < len(foodMaps) {
-		// fmt.Println("Map", fmIdx+1)
-		mappedSeeds := make([]int, 2)
-
-		ranges := make([]SeedRange, 0)
-		for _, m := range foodMaps[fmIdx].Maps {
-			// Case 1: There is no over
-			if r.End < m.SourceStart || r.Start > m.SourceEnd {
-				// fmt.Println("r.End < m.SourceStart || r.Start > m.SourceEnd")
-				ranges = append(ranges, SeedRange{
-					Start: r.Start,
-					End:   r.End,
-				})
-			} else {
-				// Case 2: THere is complete overlap
-				if r.Start >= m.SourceStart && r.End <= m.SourceEnd {
-					ranges = append(ranges, SeedRange{
-						Start: r.Start,
-						End:   r.End,
-					})
-				} else if r.End > m.SourceEnd {
-					// Case 3: Seed start is less than the end of source range
-					ranges = append(ranges, SeedRange{
-						Start: m.SourceEnd + 1,
-						End:   r.End,
-					})
-				} else if r.Start < m.SourceStart {
-					// Case 4: Seed start is less than source start
-					ranges = append(ranges, SeedRange{
-						Start: r.Start,
-						End:   m.SourceStart - 1,
-					})
-				}
-			}
-		}
-		// fmt.Println("Ranges", ranges)
-
-		// mapped := false
-		for rIdx, seed := range ranges {
-			for j, s := range []int{seed.Start, seed.End} {
-				for _, m := range foodMaps[fmIdx].Maps {
-					if s >= m.SourceStart && s <= m.SourceEnd {
-						// New mapping --> seed + (ds - ss)
-						diff := -(m.SourceStart - m.DestinationStart)
-						s = s + diff
-						// mapped = true
-						break
+				if rule_applies {
+					if r.Start < m.SourceStart {
+						new_ranges = append(new_ranges, SeedRange{
+							Start: r.Start,
+							End:   m.SourceStart - 1,
+						})
+						r.Start = m.SourceStart
+						if r.Start < m.SourceEnd {
+							new_ranges = append(new_ranges, SeedRange{
+								Start: r.Start + offset,
+								End:   r.End + offset,
+							})
+							r.Start = r.End + 1
+						} else {
+							new_ranges = append(new_ranges, SeedRange{
+								Start: r.Start + offset,
+								End:   m.SourceEnd + offset,
+							})
+							r.Start = m.SourceEnd
+						}
+					} else if r.Start < m.SourceEnd {
+						new_ranges = append(new_ranges, SeedRange{
+							Start: r.Start + offset,
+							End:   r.End + offset,
+						})
+						r.Start = r.End + 1
+					} else {
+						new_ranges = append(new_ranges, SeedRange{
+							Start: r.Start + offset,
+							End:   m.SourceEnd + offset,
+						})
+						r.Start = m.SourceEnd
 					}
 				}
-				mappedSeeds[j] = s
 			}
-			ranges[rIdx] = SeedRange{
-				Start: mappedSeeds[0],
-				End:   mappedSeeds[1],
+			if r.Start <= r.End {
+				new_ranges = append(new_ranges, r)
 			}
 		}
-		seedCount -= 1
-		// fmt.Printf("%d --> %d\n", r.Start, mappedSeeds[0])
-		// fmt.Printf("%d --> %d\n", r.End, mappedSeeds[1])
 
-		// Add all the ranges to the seedRanges
-		for _, sr := range ranges {
-			seedRanges = append(seedRanges, sr)
-		}
-
-		// Remove the current range from the seedRanges
-		seedRanges = append(seedRanges[:i], seedRanges[i+1:]...)
-
-		r = seedRanges[0]
-		if seedCount == 0 {
-			seedCount = len(seedRanges)
-			fmIdx += 1
-			fmt.Println("Onto Map", fmIdx+1, "with seed range count", seedCount)
-			continue
-		}
+		seedRanges = new_ranges
 	}
-	fmt.Println("OUt of loop")
 
-	// Get the minimum seed range
+	// GEt the minimum seed range
 	min := seedRanges[0].Start
 	for _, sr := range seedRanges {
 		if sr.Start < min {
@@ -206,20 +173,8 @@ func partTwo(input string) {
 		}
 	}
 
-	fmt.Println(min)
+	return min
 }
-
-// func getSeedMappings(seed int, foodMaps FoodMap) int {
-// 	for _, m := range fm.Maps {
-// 		if seed >= m.SourceStart && seed <= m.SourceEnd {
-// 			// New mapping --> seed + (ds - ss)
-// 			diff := -(m.SourceStart - m.DestinationStart)
-// 			seed = seed + diff
-// 			break
-// 		}
-// 	}
-// 	return seed
-// }
 
 func parseInput(input string) ([]FoodMap, []int) {
 	foodMap := make([]FoodMap, 0)
