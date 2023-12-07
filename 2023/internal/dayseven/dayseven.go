@@ -59,51 +59,20 @@ func RunDaySeven() {
 	if err != nil {
 		panic("Cannot read day 7 file")
 	}
+	partOne(string(input))
 	partTwo(string(input))
-	// partTwo(testInput)
 }
 
 func partTwo(input string) {
-	hands := parseInput(strings.ReplaceAll(input, "J", "M"))
+	hands := parseInput(input)
+	// Now change the value of J in HandMapping
+	HandMapping["J"] = 0
+	// Rank Hands
 	rankings := createRankings(&hands, 2)
 	// Order rankings
-	for _, v := range rankings {
-		// fmt.Println("Before, ", v, k)
-		sort.Slice(v, func(i, j int) bool {
-			hand := v[i].Hand
-			other := v[j].Hand
-
-			idx := 0
-			hv := HandMapping[string(hand[idx])]
-			// fmt.Println(string(hand[idx]), hv)
-			ov := HandMapping[string(other[idx])]
-			// fmt.Println(string(other[idx]), hv)
-
-			for hv == ov {
-				idx += 1
-				hv = HandMapping[string(hand[idx])]
-				// fmt.Println(string(hand[idx]), hv)
-				ov = HandMapping[string(other[idx])]
-				// fmt.Println(string(other[idx]), ov)
-			}
-
-			return hv < ov
-		})
-
-		// fmt.Println("After, ", v)
-	}
-
-	ans := 0
-	currRank := 1
-	for _, rank := range []int{HIGH_CARD, ONE_PAIR, TWO_PAIR, THREE_OF_KIND, FULL_HOUSE, FOUR_OF_KIND, FIVE_OF_KIND} {
-		hb := rankings[rank]
-		for _, h := range hb {
-			// fmt.Printf("%s: %d * %d\n", h.Hand, currRank, h.Bid)
-			ans += (currRank * h.Bid)
-			currRank += 1
-		}
-	}
-
+	orderRankings(&rankings)
+	// Calculate score
+	ans := calculateBidScore(rankings)
 	fmt.Println(ans)
 }
 
@@ -112,44 +81,44 @@ func partOne(input string) {
 	// Rank hands
 	rankings := createRankings(&hands, 1)
 	// Order rankings
-	for _, v := range rankings {
-		// fmt.Println("Before, ", v)
+	orderRankings(&rankings)
+	// Calculate score
+	ans := calculateBidScore(rankings)
+	fmt.Println(ans)
+}
+
+// Function to order rankings based on hand values
+func orderRankings(rankings *map[int][]HandBid) {
+	for _, v := range *rankings {
 		sort.Slice(v, func(i, j int) bool {
 			hand := v[i].Hand
 			other := v[j].Hand
 
 			idx := 0
-			hv := HandMapping[string(hand[idx])]
-			// fmt.Println(string(hand[idx]), hv)
-			ov := HandMapping[string(other[idx])]
-			// fmt.Println(string(other[idx]), hv)
-
+			var hv, ov int
 			for hv == ov {
-				idx += 1
 				hv = HandMapping[string(hand[idx])]
-				// fmt.Println(string(hand[idx]), hv)
 				ov = HandMapping[string(other[idx])]
-				// fmt.Println(string(other[idx]), ov)
+				idx += 1
 			}
 
 			return hv < ov
 		})
-
-		// fmt.Println("After, ", v)
 	}
+}
 
+// Function to calculate and print the final score
+func calculateBidScore(rankings map[int][]HandBid) int {
 	ans := 0
 	currRank := 1
 	for _, rank := range []int{HIGH_CARD, ONE_PAIR, TWO_PAIR, THREE_OF_KIND, FULL_HOUSE, FOUR_OF_KIND, FIVE_OF_KIND} {
 		hb := rankings[rank]
 		for _, h := range hb {
-			// fmt.Printf("%s: %d * %d\n", h.Hand, currRank, h.Bid)
 			ans += (currRank * h.Bid)
-			currRank += 1
+			currRank++
 		}
 	}
-
-	fmt.Println(ans)
+	return ans
 }
 
 func createRankings(hands *[]HandBid, part int) map[int][]HandBid {
@@ -187,7 +156,7 @@ func parseInput(input string) []HandBid {
 
 func handRankPartTwo(hand string) int {
 	rank := handRank(hand)
-	jCount := strings.Count(hand, "M")
+	jCount := strings.Count(hand, "J")
 	if jCount == 0 {
 		return rank
 	}
