@@ -42,7 +42,7 @@ func RunDayEight() {
 	fmt.Println("Part 2:", partTwo(string(input)))
 }
 
-func partOne(input string) int {
+func parseInput(input string) (map[string]Node, string) {
 	inputSplit := strings.Split(input, "\n\n")
 	path := inputSplit[0]
 	routes := inputSplit[1]
@@ -67,6 +67,11 @@ func partOne(input string) int {
 		}
 	}
 
+	return nodes, path
+}
+
+func partOne(input string) int {
+	nodes, path := parseInput(input)
 	currNode := "AAA"
 	i := 0
 	count := 0
@@ -94,29 +99,7 @@ func partOne(input string) int {
 }
 
 func partTwo(input string) int {
-	inputSplit := strings.Split(input, "\n\n")
-	path := inputSplit[0]
-	routes := inputSplit[1]
-	pattern := `\b(\w{3}) = \((\w{3}), (\w{3})\)`
-
-	nodes := make(map[string]Node)
-	for _, line := range strings.Split(routes, "\n") {
-		// Compile the regular expression
-		re := regexp.MustCompile(pattern)
-
-		// Find the matches in the input string
-		matches := re.FindStringSubmatch(line)
-
-		node := matches[1]
-		left := matches[2]
-		right := matches[3]
-
-		nodes[node] = Node{
-			Value: node,
-			Left:  left,
-			Right: right,
-		}
-	}
+	nodes, path := parseInput(input)
 
 	// Find all starting nodes (i.e. nodes that end with A)
 	startingNodes := make([]string, 0)
@@ -127,18 +110,18 @@ func partTwo(input string) int {
 	}
 
 	// Brute force wont work, need to find a cycle for each
-	// Starting node
+	// Keep track of all the cycles for all the starting nodes
 	cycles := make(map[string][]string)
 	// Add starting to cycles
 	for _, n := range startingNodes {
 		cycles[n] = make([]string, 0)
 	}
+	// Create a slices that stores whether a starting node has a cycle yet
 	cyclesFound := make([]bool, len(startingNodes))
 
 	i := 0
 	currentNodes := make([]string, 0)
 	currentNodes = append(currentNodes, startingNodes...)
-	// fmt.Println(currentNodes)
 	for !iterators.Every(cyclesFound, func(f bool) bool { return f }) {
 		// Get the next step
 		rol := string(path[i])
