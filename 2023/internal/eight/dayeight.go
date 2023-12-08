@@ -211,39 +211,3 @@ func multipleLCM(numbers []*big.Int) *big.Int {
 
 	return result
 }
-
-// Reset the state for each starting node
-func resetState() {
-	// Reset any state variables or data structures used during navigation
-}
-
-// Navigate from the given starting node until reaching a node ending with Z
-func navigate(startingNode string, path string, nodes map[string]Node) int {
-	steps := 0
-	currentNode := startingNode
-
-	i := 0
-	// Continue navigating until reaching a node ending with Z
-	for !strings.HasSuffix(currentNode, "Z") {
-		// Get the next step
-		rol := string(path[i])
-		i++
-		if i >= len(path) {
-			i = 0
-		}
-
-		// Follow the instruction based on R or L
-		node := nodes[currentNode]
-		switch rol {
-		case "R":
-			currentNode = node.Right
-		case "L":
-			currentNode = node.Left
-		}
-
-		// Increment the steps
-		steps++
-	}
-
-	return steps
-}
