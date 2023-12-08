@@ -45,7 +45,6 @@ var HandMapping map[string]int = map[string]int{
 	"4": 3,
 	"3": 2,
 	"2": 1,
-	"M": 0, // For part 2
 }
 
 type HandBid struct {
@@ -59,11 +58,13 @@ func RunDaySeven() {
 	if err != nil {
 		panic("Cannot read day 7 file")
 	}
-	partOne(string(input))
-	partTwo(string(input))
+	res := partOne(string(input))
+	fmt.Println("Part 1:", res)
+	res = partTwo(string(input))
+	fmt.Println("Part 2:", res)
 }
 
-func partTwo(input string) {
+func partTwo(input string) int {
 	hands := parseInput(input)
 	// Now change the value of J in HandMapping
 	HandMapping["J"] = 0
@@ -72,19 +73,17 @@ func partTwo(input string) {
 	// Order rankings
 	orderRankings(&rankings)
 	// Calculate score
-	ans := calculateBidScore(rankings)
-	fmt.Println(ans)
+	return calculateBidScore(rankings)
 }
 
-func partOne(input string) {
+func partOne(input string) int {
 	hands := parseInput(input)
 	// Rank hands
 	rankings := createRankings(&hands, 1)
 	// Order rankings
 	orderRankings(&rankings)
 	// Calculate score
-	ans := calculateBidScore(rankings)
-	fmt.Println(ans)
+	return calculateBidScore(rankings)
 }
 
 // Function to order rankings based on hand values
@@ -155,34 +154,43 @@ func parseInput(input string) []HandBid {
 }
 
 func handRankPartTwo(hand string) int {
+	// Calculate the original rank
 	rank := handRank(hand)
+	// Count the number of J's
 	jCount := strings.Count(hand, "J")
 	if jCount == 0 {
 		return rank
 	}
 	switch rank {
 	case FIVE_OF_KIND:
+		// If the rank of the hand is five of a kind, then return
 		return FIVE_OF_KIND
 	case FOUR_OF_KIND:
+		// If the rank of the hand is four of a kind, then the extra J will make it five of a kind
+		// AAAAJ -> AAAAA
 		return FIVE_OF_KIND
 	case FULL_HOUSE:
+		// If the rank of the hand is full house, then the extra J will make it five of a kind
+		// AAAJJ -> AAAAA
 		return FIVE_OF_KIND
 	case THREE_OF_KIND:
+		// If the rank of the hand is three of a kind, then the extra J will make it four of a kind
+		// AAAKJ -> AAAAK
 		return FOUR_OF_KIND
 	case TWO_PAIR:
+		// If the rank of the hand is two pair (AAKKJ or AAJJK), then
 		if jCount == 1 {
+			// If there is one J, then it will become a full house (AAKKJ --> AAAKK)
 			return FULL_HOUSE
 		} else {
+			// If there are two J's, then it will become four of a kind (AAJJK --> AAAAK)
 			return FOUR_OF_KIND
 		}
 	case ONE_PAIR:
-		if jCount == 2 {
-			return THREE_OF_KIND
-		}
-		if jCount == 1 {
-			return THREE_OF_KIND
-		}
+		// If the rank of the hand is one pair (AAKJQ) then the extra J will make it three of a kind
+		return THREE_OF_KIND
 	case HIGH_CARD:
+		// If all cards are different, changing the J to another card will make a one pair
 		return ONE_PAIR
 	}
 
@@ -190,35 +198,43 @@ func handRankPartTwo(hand string) int {
 }
 
 func handRank(hand string) int {
+	// Find the number of distinct characters
 	characters := make(map[rune]int, 0)
 	for _, ch := range hand {
 		characters[ch] += 1
 	}
 
+	// If there is only 1 distinct character, then it is five of a kind
 	if len(characters) == 1 {
 		// Five of kind
 		return FIVE_OF_KIND
 	}
 
+	// Loop through the distinct characters
 	for _, v := range characters {
+		// If the count of the character is 4, then it is four of a kind
 		if v == 4 {
 			return FOUR_OF_KIND
 		}
+		// If the count of the character is 3 and there are only 2 distinct characters, then it is a full house
 		if v == 3 && len(characters) == 2 {
 			return FULL_HOUSE
 		}
+		// If the count of the character is 3 and there are more than 2 distinct characters, then it is three of a kind
 		if v == 3 {
 			return THREE_OF_KIND
 		}
 	}
 
+	// If there are 3 distinct characters, then it is two pair
 	if len(characters) == 3 {
 		return TWO_PAIR
 	}
 
+	// If there are 4 distinct characters, then it is one pair
 	if len(characters) == 4 {
 		return ONE_PAIR
 	}
-
+	// If there are 5 distinct characters, then it is high card
 	return HIGH_CARD
 }
