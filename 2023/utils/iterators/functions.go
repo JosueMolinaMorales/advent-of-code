@@ -28,3 +28,12 @@ func Product[T ~int | ~float32 | ~float64](list []T) T {
 	}
 	return result
 }
+
+func Every[T any](list []T, f func(T) bool) bool {
+	for _, v := range list {
+		if !f(v) {
+			return false
+		}
+	}
+	return true
+}
