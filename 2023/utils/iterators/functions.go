@@ -37,3 +37,12 @@ func Every[T any](list []T, f func(T) bool) bool {
 	}
 	return true
 }
+
+func Some[T any](list []T, f func(T) bool) bool {
+	for _, v := range list {
+		if f(v) {
+			return true
+		}
+	}
+	return false
+}
