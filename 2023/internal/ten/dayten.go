@@ -85,393 +85,97 @@ func RunDayTen() {
 	if err != nil {
 		panic("Failed to read day 10 input")
 	}
-	res, _ := partOne(string(input))
-	println("Part 1:", res)
-	res = partTwo(string(input))
+	// res, _ := partOne(string(input))
+	// println("Part 1:", res)
+	// // 680 too high
+	res := partTwo(string(input))
 	println("Part 2:", res)
+	// fmt.Println(p2())
 }
 
 func partTwo(input string) int {
 	// Use the path found in part one
-	matrix, _ := parseInput(input)
+	matrix, sp := parseInput(input)
 	_, path := partOne(input)
-	// Find all the points within the matrix that are "."
-	points := make([]Point, 0)
-	for r, row := range matrix {
-		for c := range row {
-			// If the point is not in the main loop
-			if !iterators.Some(path, func(point Point) bool {
-				return point.Row == r && point.Col == c
-			}) {
-				points = append(points, Point{Row: r, Col: c})
-			}
-		}
+
+	// Convert S to a pipe based on the pipes that connect to it
+	p1 := path[1]
+	p2 := path[len(path)-1]
+
+	directions := []struct {
+		Row       int
+		Col       int
+		Direction string
+	}{
+		{-1, 0, "UP"},
+		{0, 1, "RIGHT"},
+		{1, 0, "DOWN"},
+		{0, -1, "LEFT"},
 	}
-
-	fmt.Println("Len points:", len(points))
-	// Find all points that are "." and are within the area of the loop
-	points = iterators.Filter(points, func(p Point) bool {
-		return isInArea(&p, path, matrix)
-	})
-	fmt.Println("Len Points in area:", len(points))
-	// Group adjacent points
-	groups := groupAdjacentPoints(points)
-
-	fmt.Println("Len Groups:", (groups))
-
-	// Find all groups that are enclosed
-	enclosedGroups := make([][]Point, 0)
-	for _, group := range groups {
-		isEnclosed := true
-		for _, point := range group {
-			if !isEnclosedInLoop(&point, group, groups, path, matrix) {
-				fmt.Println("Point not enclosed:", point)
-				isEnclosed = false
-				break
-			}
-		}
-		if isEnclosed {
-			enclosedGroups = append(enclosedGroups, group)
-		}
-	}
-	fmt.Println("Len Enclosed Groups:", len(enclosedGroups))
-	pointCount := 0
-	for _, group := range enclosedGroups {
-		pointCount += len(group)
-	}
-
-	return pointCount
-}
-
-func groupAdjacentPoints(points []Point) [][]Point {
-	groups := make([][]Point, 0)
-	visited := make([]Point, 0)
-
-	for _, point := range points {
-		if !slices.ContainsFunc(visited, func(p Point) bool {
-			return p.Row == point.Row && p.Col == point.Col
-		}) {
-			group := make([]Point, 0)
-			dfs(point, points, &visited, &group)
-			groups = append(groups, group)
-		}
-	}
-
-	return groups
-}
-
-func dfs(point Point, points []Point, visited *[]Point, group *[]Point) {
-	if slices.ContainsFunc(*visited, func(p Point) bool {
-		return p.Row == point.Row && p.Col == point.Col
-	}) {
-		return
-	}
-
-	*visited = append(*visited, point)
-	*group = append(*group, point)
-
-	// Define the possible neighbors (up, down, left, right)
-	neighbors := []Point{
-		{point.Row - 1, point.Col, 0, 0},
-		{point.Row + 1, point.Col, 0, 0},
-		{point.Row, point.Col - 1, 0, 0},
-		{point.Row, point.Col + 1, 0, 0},
-	}
-
-	for _, neighbor := range neighbors {
-		if slices.ContainsFunc(points, func(p Point) bool {
-			return p.Row == neighbor.Row && p.Col == neighbor.Col
-		}) && !slices.ContainsFunc(*visited, func(p Point) bool {
-			return p.Row == neighbor.Row && p.Col == neighbor.Col
-		}) {
-			dfs(neighbor, points, visited, group)
-		}
-	}
-}
-
-func isEnclosedInLoop(p *Point, group []Point, groups [][]Point, loop []Point, matrix [][]string) bool {
-	// fmt.Println("Current point:", p.Row, p.Col)
-	// Check The points adj to the point, if they are not part of the main loop, then it is not enclosed
-	directions := []Point{
-		{-1, 0, 0, 0}, // UP
-		{0, 1, 0, 0},  // Right
-		{1, 0, 0, 0},  // Down
-		{0, -1, 0, 0}, // Left
-	}
-	adjNotEnclosed := false
+	p1Dir := ""
+	p2Dir := ""
 	for _, dir := range directions {
-		dx := p.Row + dir.Row
-		dy := p.Col + dir.Col
-		// Check if it doesnt exceed bounds
+		dx := sp.Row + dir.Row
+		dy := sp.Col + dir.Col
 		if dx < 0 || dx >= len(matrix) || dy < 0 || dy >= len(matrix[0]) {
 			continue
 		}
-		if !iterators.Some(loop, func(point Point) bool {
-			return point.Row == dx && point.Col == dy
-		}) && !iterators.Some(group, func(point Point) bool {
-			return point.Row == dx && point.Col == dy
-		}) {
-			adjNotEnclosed = true
-			break
+		if dx == p1.Row && dy == p1.Col {
+			p1Dir = dir.Direction
+		}
+		if dx == p2.Row && dy == p2.Col {
+			p2Dir = dir.Direction
 		}
 	}
 
-	if adjNotEnclosed {
-		fmt.Println("Adjacent point not enclosed", p.Row, p.Col)
-		return false
+	switch fmt.Sprintf("%s,%s", p1Dir, p2Dir) {
+	case "UP,RIGHT", "RIGHT,UP":
+		matrix[sp.Row][sp.Col] = "L"
+	case "UP,DOWN", "DOWN,UP":
+		matrix[sp.Row][sp.Col] = "|"
+	case "UP,LEFT", "LEFT,UP":
+		matrix[sp.Row][sp.Col] = "J"
+	case "RIGHT,DOWN", "DOWN,RIGHT":
+		matrix[sp.Row][sp.Col] = "7"
+	case "RIGHT,LEFT", "LEFT,RIGHT":
+		matrix[sp.Row][sp.Col] = "-"
+	case "DOWN,LEFT", "LEFT,DOWN":
+		matrix[sp.Row][sp.Col] = "F"
 	}
 
-	topPoint := Point{Row: p.Row - 1, Col: p.Col, Dist: 0, Neighbors: 0}
-	leftVertical := []string{"|", "7", "J"}
-	rightVertical := []string{"|", "F", "L"}
-	canGoUp := false
-	if topPoint.Row > 0 && slices.Contains(leftVertical, matrix[topPoint.Row][topPoint.Col]) {
-		// Keep going up
-		topRightPoint := Point{Row: p.Row - 1, Col: p.Col + 1, Dist: 0, Neighbors: 0}
-		for (slices.Contains(leftVertical, matrix[topPoint.Row][topPoint.Col]) &&
-			slices.Contains(rightVertical, matrix[topRightPoint.Row][topRightPoint.Col])) ||
-			(slices.Contains(leftVertical, matrix[topPoint.Row][topPoint.Col]) && !isPointInMainLoop(&topRightPoint, loop)) ||
-			(slices.Contains(rightVertical, matrix[topRightPoint.Row][topRightPoint.Col]) && !isPointInMainLoop(&topPoint, loop)) {
-			topPoint.Row -= 1
-			topRightPoint.Row -= 1
-
-			if !isPointInMainLoop(&topPoint, loop) && !isPointInMainLoop(&topRightPoint, loop) && isNotPartOfGroup(&topPoint, groups) && isNotPartOfGroup(&topRightPoint, groups) {
-				canGoUp = true
-				break
-			}
-
-			if topPoint.Row < 0 || topRightPoint.Row < 0 {
-				canGoUp = true
-				break
+	// Print out the loop
+	for r := range matrix {
+		for c := range matrix[r] {
+			if iterators.Some(path, func(point Point) bool {
+				return point.Row == r && point.Col == c
+			}) {
+				fmt.Print(matrix[r][c])
+			} else {
+				fmt.Print(" ")
 			}
 		}
-	} else if topPoint.Row > 0 && slices.Contains(rightVertical, matrix[topPoint.Row][topPoint.Col]) {
-		// Keep going up
-		topLeftPoint := Point{Row: p.Row - 1, Col: p.Col - 1, Dist: 0, Neighbors: 0}
-		for (slices.Contains(rightVertical, matrix[topPoint.Row][topPoint.Col]) &&
-			slices.Contains(leftVertical, matrix[topLeftPoint.Row][topLeftPoint.Col])) ||
-			(slices.Contains(rightVertical, matrix[topPoint.Row][topPoint.Col]) && !isPointInMainLoop(&topLeftPoint, loop)) ||
-			(slices.Contains(leftVertical, matrix[topLeftPoint.Row][topLeftPoint.Col]) && !isPointInMainLoop(&topPoint, loop)) {
-			topPoint.Row -= 1
-			topLeftPoint.Row -= 1
+		fmt.Println()
+	}
 
-			if !isPointInMainLoop(&topPoint, loop) && !isPointInMainLoop(&topLeftPoint, loop) && isNotPartOfGroup(&topPoint, groups) && isNotPartOfGroup(&topLeftPoint, groups) {
-				fmt.Printf("Point can go up: (%d, %d)\n", p.Row, p.Col)
-				canGoUp = true
-				break
-			}
-
-			if topPoint.Row < 0 || topLeftPoint.Row < 0 {
-				fmt.Printf("Point can go up: (%d, %d)\n", p.Row, p.Col)
-				canGoUp = true
-				break
+	sum := 0
+	for r := range matrix {
+		inside := false
+		for c := range matrix[r] {
+			if !iterators.Some(path, func(point Point) bool {
+				return point.Row == r && point.Col == c
+			}) {
+				if inside {
+					sum++
+				}
+			} else if matrix[r][c] == "|" ||
+				matrix[r][c] == "L" ||
+				matrix[r][c] == "J" {
+				inside = !inside
 			}
 		}
 	}
 
-	leftPoint := Point{Row: p.Row, Col: p.Col - 1, Dist: 0, Neighbors: 0}
-	topHorizontal := []string{"-", "L", "J"}
-	bottomHorizontal := []string{"-", "7", "F"}
-	canGoLeft := false
-
-	if leftPoint.Col > 0 && slices.Contains(topHorizontal, matrix[leftPoint.Row][leftPoint.Col]) {
-		// Keep going left
-		bottomLeftPoint := Point{Row: p.Row + 1, Col: p.Col - 1, Dist: 0, Neighbors: 0}
-		for (slices.Contains(topHorizontal, matrix[leftPoint.Row][leftPoint.Col]) &&
-			slices.Contains(bottomHorizontal, matrix[bottomLeftPoint.Row][bottomLeftPoint.Col])) ||
-			(slices.Contains(topHorizontal, matrix[leftPoint.Row][leftPoint.Col]) && !isPointInMainLoop(&bottomLeftPoint, loop)) ||
-			(slices.Contains(bottomHorizontal, matrix[bottomLeftPoint.Row][bottomLeftPoint.Col]) && !isPointInMainLoop(&leftPoint, loop)) {
-			leftPoint.Col -= 1
-			bottomLeftPoint.Col -= 1
-
-			if !isPointInMainLoop(&leftPoint, loop) && !isPointInMainLoop(&bottomLeftPoint, loop) && isNotPartOfGroup(&leftPoint, groups) && isNotPartOfGroup(&bottomLeftPoint, groups) {
-				canGoLeft = true
-				break
-			}
-
-			if leftPoint.Col < 0 || bottomLeftPoint.Col < 0 {
-				canGoLeft = true
-				break
-			}
-		}
-	} else if leftPoint.Col > 0 && slices.Contains(bottomHorizontal, matrix[leftPoint.Row][leftPoint.Col]) {
-		// Keep going left
-		topLeftPoint := Point{Row: p.Row - 1, Col: p.Col - 1, Dist: 0, Neighbors: 0}
-		for (slices.Contains(bottomHorizontal, matrix[leftPoint.Row][leftPoint.Col]) &&
-			slices.Contains(topHorizontal, matrix[topLeftPoint.Row][topLeftPoint.Col])) ||
-			(slices.Contains(bottomHorizontal, matrix[leftPoint.Row][leftPoint.Col]) && !isPointInMainLoop(&topLeftPoint, loop)) ||
-			(slices.Contains(topHorizontal, matrix[topLeftPoint.Row][topLeftPoint.Col]) && !isPointInMainLoop(&leftPoint, loop)) {
-			leftPoint.Col -= 1
-			topLeftPoint.Col -= 1
-
-			if !isPointInMainLoop(&leftPoint, loop) && !isPointInMainLoop(&topLeftPoint, loop) && isNotPartOfGroup(&leftPoint, groups) && isNotPartOfGroup(&topLeftPoint, groups) {
-				canGoLeft = true
-				break
-			}
-
-			if leftPoint.Col < 0 || topLeftPoint.Col < 0 {
-				canGoLeft = true
-				break
-			}
-		}
-	}
-
-	rightPoint := Point{Row: p.Row, Col: p.Col + 1, Dist: 0, Neighbors: 0}
-	canGoRight := false
-	if rightPoint.Col < len(matrix[0]) && slices.Contains(topHorizontal, matrix[rightPoint.Row][rightPoint.Col]) {
-		// Keep going right
-		bottomRightPoint := Point{Row: p.Row + 1, Col: p.Col + 1, Dist: 0, Neighbors: 0}
-		for (slices.Contains(topHorizontal, matrix[rightPoint.Row][rightPoint.Col]) &&
-			slices.Contains(bottomHorizontal, matrix[bottomRightPoint.Row][bottomRightPoint.Col])) ||
-			(slices.Contains(topHorizontal, matrix[rightPoint.Row][rightPoint.Col]) && !isPointInMainLoop(&bottomRightPoint, loop)) ||
-			(slices.Contains(bottomHorizontal, matrix[bottomRightPoint.Row][bottomRightPoint.Col]) && !isPointInMainLoop(&rightPoint, loop)) {
-			rightPoint.Col += 1
-			bottomRightPoint.Col += 1
-
-			if !isPointInMainLoop(&rightPoint, loop) && !isPointInMainLoop(&bottomRightPoint, loop) && isNotPartOfGroup(&rightPoint, groups) && isNotPartOfGroup(&bottomRightPoint, groups) {
-				canGoRight = true
-				break
-			}
-
-			if rightPoint.Col >= len(matrix[0]) || bottomRightPoint.Col >= len(matrix[0]) {
-				canGoRight = true
-				break
-			}
-		}
-	} else if rightPoint.Col < len(matrix[0]) && slices.Contains(bottomHorizontal, matrix[rightPoint.Row][rightPoint.Col]) {
-		// Keep going right
-		topRightPoint := Point{Row: p.Row - 1, Col: p.Col + 1, Dist: 0, Neighbors: 0}
-		for (slices.Contains(bottomHorizontal, matrix[rightPoint.Row][rightPoint.Col]) &&
-			slices.Contains(topHorizontal, matrix[topRightPoint.Row][topRightPoint.Col])) ||
-			(slices.Contains(bottomHorizontal, matrix[rightPoint.Row][rightPoint.Col]) && !isPointInMainLoop(&topRightPoint, loop)) ||
-			(slices.Contains(topHorizontal, matrix[topRightPoint.Row][topRightPoint.Col]) && !isPointInMainLoop(&rightPoint, loop)) {
-			rightPoint.Col += 1
-			topRightPoint.Col += 1
-
-			if !isPointInMainLoop(&rightPoint, loop) && !isPointInMainLoop(&topRightPoint, loop) && isNotPartOfGroup(&rightPoint, groups) && isNotPartOfGroup(&topRightPoint, groups) {
-				canGoRight = true
-				break
-			}
-
-			if rightPoint.Col >= len(matrix[0]) || topRightPoint.Col >= len(matrix[0]) {
-				canGoRight = true
-				break
-			}
-		}
-	}
-
-	bottomPoint := Point{Row: p.Row + 1, Col: p.Col, Dist: 0, Neighbors: 0}
-	canGoDown := false
-	if bottomPoint.Row < len(matrix) && slices.Contains(leftVertical, matrix[bottomPoint.Row][bottomPoint.Col]) {
-		// Keep going down
-		bottomRightPoint := Point{Row: p.Row + 1, Col: p.Col + 1, Dist: 0, Neighbors: 0}
-		for (slices.Contains(leftVertical, matrix[bottomPoint.Row][bottomPoint.Col]) &&
-			slices.Contains(rightVertical, matrix[bottomRightPoint.Row][bottomRightPoint.Col])) ||
-			(slices.Contains(leftVertical, matrix[bottomPoint.Row][bottomPoint.Col]) && !isPointInMainLoop(&bottomRightPoint, loop)) ||
-			(slices.Contains(rightVertical, matrix[bottomRightPoint.Row][bottomRightPoint.Col]) && !isPointInMainLoop(&bottomPoint, loop)) {
-			bottomPoint.Row += 1
-			bottomRightPoint.Row += 1
-
-			// If both points are out of the loop, then it is not enclosed
-			if !isPointInMainLoop(&bottomPoint, loop) && !isPointInMainLoop(&bottomRightPoint, loop) && isNotPartOfGroup(&bottomPoint, groups) && isNotPartOfGroup(&bottomRightPoint, groups) {
-				canGoDown = true
-				break
-			}
-
-			if bottomPoint.Row >= len(matrix) || bottomRightPoint.Row >= len(matrix) {
-				canGoDown = true
-				break
-			}
-		}
-	} else if bottomPoint.Row < len(matrix) && slices.Contains(rightVertical, matrix[bottomPoint.Row][bottomPoint.Col]) {
-		// Keep going down
-		bottomLeftPoint := Point{Row: p.Row + 1, Col: p.Col - 1, Dist: 0, Neighbors: 0}
-		for (slices.Contains(rightVertical, matrix[bottomPoint.Row][bottomPoint.Col]) &&
-			slices.Contains(leftVertical, matrix[bottomLeftPoint.Row][bottomLeftPoint.Col])) ||
-			(slices.Contains(rightVertical, matrix[bottomPoint.Row][bottomPoint.Col]) && !isPointInMainLoop(&bottomLeftPoint, loop)) ||
-			(slices.Contains(leftVertical, matrix[bottomLeftPoint.Row][bottomLeftPoint.Col]) && !isPointInMainLoop(&bottomPoint, loop)) {
-			bottomPoint.Row += 1
-			bottomLeftPoint.Row += 1
-
-			if !isPointInMainLoop(&bottomPoint, loop) && !isPointInMainLoop(&bottomLeftPoint, loop) && isNotPartOfGroup(&bottomPoint, groups) && isNotPartOfGroup(&bottomLeftPoint, groups) {
-				canGoDown = true
-				break
-			}
-
-			if bottomPoint.Row >= len(matrix) || bottomLeftPoint.Row >= len(matrix) {
-				canGoDown = true
-				break
-			}
-
-		}
-	}
-
-	return !canGoUp && !canGoLeft && !canGoRight && !canGoDown
-}
-
-func isNotPartOfGroup(p *Point, groups [][]Point) bool {
-	for _, group := range groups {
-		if iterators.Some(group, func(point Point) bool {
-			return point.Row == p.Row && point.Col == p.Col
-		}) {
-			return false
-		}
-	}
-	return true
-}
-
-func isPointInMainLoop(p *Point, loop []Point) bool {
-	return iterators.Some(loop, func(point Point) bool {
-		return point.Row == p.Row && point.Col == p.Col
-	})
-}
-
-func isInArea(p *Point, loop []Point, matrix [][]string) bool {
-	// Go above the point until either a pipe within the loop is found or the top of the matrix is reached
-	top := false
-	for i := p.Row; i >= 0; i-- {
-		// The current point was found within the loop
-		if iterators.Some(loop, func(point Point) bool {
-			return point.Row == i && point.Col == p.Col
-		}) {
-			top = true
-		}
-	}
-
-	// Go below the point until either a pipe within the loop is found or the bottom of the matrix is reached
-	below := false
-	for i := p.Row; i < len(matrix); i++ {
-		// The current point was found within the loop
-		if iterators.Some(loop, func(point Point) bool {
-			return point.Row == i && point.Col == p.Col
-		}) {
-			below = true
-		}
-	}
-
-	// Go left of the point until either a pipe within the loop is found or the left of the matrix is reached
-	left := false
-	for i := p.Col; i >= 0; i-- {
-		// The current point was found within the loop
-		if iterators.Some(loop, func(point Point) bool {
-			return point.Row == p.Row && point.Col == i
-		}) {
-			left = true
-		}
-	}
-
-	// Go right of the point until either a pipe within the loop is found or the right of the matrix is reached
-	right := false
-	for i := p.Col; i < len(matrix[0]); i++ {
-		// The current point was found within the loop
-		if iterators.Some(loop, func(point Point) bool {
-			return point.Row == p.Row && point.Col == i
-		}) {
-			right = true
-		}
-	}
-
-	return top && below && left && right
+	return sum
 }
 
 func partOne(input string) (int, []Point) {
