@@ -46,3 +46,11 @@ func Some[T any](list []T, f func(T) bool) bool {
 	}
 	return false
 }
+
+func Repeat[T any](element T, times int) []T {
+	var result []T
+	for i := 0; i < times; i++ {
+		result = append(result, element)
+	}
+	return result
+}
