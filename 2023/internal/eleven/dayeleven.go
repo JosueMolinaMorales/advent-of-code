@@ -1,11 +1,10 @@
 package eleven
 
 import (
-	"container/heap"
 	"fmt"
-	"slices"
+	"math"
+	"os"
 	"strings"
-	"sync"
 
 	"github.com/josuemolinamorales/aoc-2023/utils/iterators"
 )
@@ -21,16 +20,33 @@ const testInput = `...#......
 .......#..
 #...#.....`
 
-func RunDayEleven() {
-	// input, err := os.ReadFile("./input/day11.txt")
-	// if err != nil {
-	// 	panic("Failed to read day 11 input file")
-	// }
-	// fmt.Println("Part 1:", partOne(string(input)))
-	fmt.Println("Part 1:", partOne(testInput))
+type Point struct {
+	x, y int
 }
 
-func partOne(input string) int {
+// https://en.wikipedia.org/wiki/Taxicab_geometry
+func (p Point) manhattanDistance(other Point) int {
+	return int(math.Abs(float64(p.x-other.x)) + math.Abs(float64(p.y-other.y)))
+}
+
+func (p Point) mins(other Point) Point {
+	return Point{x: min(p.x, other.x), y: min(p.y, other.y)}
+}
+
+func (p Point) maxs(other Point) Point {
+	return Point{x: max(p.x, other.x), y: max(p.y, other.y)}
+}
+
+func RunDayEleven() {
+	input, err := os.ReadFile("./input/day11.txt")
+	if err != nil {
+		panic("Failed to read day 11 input file")
+	}
+	fmt.Println("Part 1:", partOne(string(input)))
+	fmt.Println("Part 2:", partTwo(string(input)))
+}
+
+func parseInput(input string) ([]Point, []int, []int) {
 	matrix := make([][]string, 0)
 	for _, line := range strings.Split(input, "\n") {
 		row := make([]string, 0)
@@ -41,24 +57,30 @@ func partOne(input string) int {
 		matrix = append(matrix, row)
 	}
 
-	// fmt.Println("Before expansion:")
-	// printMatrix(matrix)
+	// Find all '#' in the matrix
+	galaxies := make([]Point, 0)
+	for i := 0; i < len(matrix); i++ {
+		for j := 0; j < len(matrix[0]); j++ {
+			if matrix[i][j] != "." {
+				galaxies = append(galaxies, Point{x: i, y: j})
+			}
+		}
+	}
 
-	// Expand matrix
-	// Check rows
-	rows := make([]int, 0)
+	// Determine which rows are empty and which columns are empty
+	emptyRows := make([]int, 0)
+	emptyCols := make([]int, 0)
 	for i := 0; i < len(matrix); i++ {
 		emptySpace := iterators.Every(matrix[i], func(ch string) bool {
 			return ch == "."
 		})
 		if emptySpace {
-			rows = append(rows, i)
+			emptyRows = append(emptyRows, i)
 		}
 	}
 
 	// Check columns for empty space
 	i, j := 0, 0
-	cols := make([]int, 0)
 	for j < len(matrix[0]) {
 		emptySpace := true
 		for i < len(matrix) {
@@ -69,176 +91,57 @@ func partOne(input string) int {
 			i++
 		}
 		if emptySpace {
-			cols = append(cols, j)
+			emptyCols = append(emptyCols, j)
 		}
 		j++
 		i = 0
 	}
 
-	galaxies := make([]Point, 0)
-	// matrix = matrixCopy
-	for i := 0; i < len(matrix); i++ {
-		for j := 0; j < len(matrix[0]); j++ {
-			if matrix[i][j] != "." {
-				galaxies = append(galaxies, Point{x: i, y: j})
-			}
-		}
-	}
+	return galaxies, emptyRows, emptyCols
+}
 
-	// Find all pairs of galaxies
-	pairs := make([][]Point, 0)
-	for i := 0; i < len(galaxies); i++ {
-		for j := i + 1; j < len(galaxies); j++ {
-			pairs = append(pairs, []Point{galaxies[i], galaxies[j]})
-		}
-	}
-	fmt.Println("Len pairs:", len(pairs))
-	// For every galaxy pair, find the shortest path between them using BFS
-	// Create a channel to receive results
-	resultChan := make(chan Result, len(pairs))
+func partTwo(input string) int {
+	galaxies, emptyRows, emptyCols := parseInput(input)
 
-	// Use a WaitGroup to wait for all goroutines to finish
-	var wg sync.WaitGroup
-
-	// Launch goroutines for each pair
-	for _, pair := range pairs {
-		wg.Add(1)
-		go dijkstra(matrix, pair[0], pair[1], rows, cols, 2, resultChan, &wg)
-	}
-
-	// Create a goroutine to close the resultChan when all goroutines finish
-	go func() {
-		wg.Wait()
-		close(resultChan)
-	}()
-
-	// Sum the path lengths as results come in
-	sum := 0
-	for result := range resultChan {
-		sum += (result.Distance - 1)
-	}
-
-	fmt.Println("Total sum:", sum)
+	sum := sumDistances(galaxies, emptyRows, emptyCols, 999_999)
 
 	return sum
 }
 
-type Point struct {
-	x, y int
-}
+func sumDistances(galaxies []Point, emptyRows, emptyCols []int, expansion int) int {
+	sum := 0
+	// For each start, calc manhanttan distance to every other galaxy
+	for i := 0; i < len(galaxies); i++ {
+		for j := i + 1; j < len(galaxies); j++ {
+			// Calc manhattan distance
+			dist := galaxies[i].manhattanDistance(galaxies[j])
+			// Add expansion to the dist for each row or column it would travese
+			minPoint := galaxies[i].mins(galaxies[j])
+			maxPoint := galaxies[i].maxs(galaxies[j])
 
-type PriorityQueue []*Item
-
-func (pq PriorityQueue) Len() int           { return len(pq) }
-func (pq PriorityQueue) Less(i, j int) bool { return pq[i].priority < pq[j].priority }
-func (pq PriorityQueue) Swap(i, j int)      { pq[i], pq[j] = pq[j], pq[i] }
-
-func (pq *PriorityQueue) Push(x interface{}) {
-	item := x.(*Item)
-	*pq = append(*pq, item)
-}
-
-func (pq *PriorityQueue) Pop() interface{} {
-	old := *pq
-	n := len(old)
-	item := old[n-1]
-	*pq = old[0 : n-1]
-	return item
-}
-
-type Item struct {
-	value    Point
-	priority int
-}
-
-// Result represents the result of a Dijkstra's algorithm run.
-type Result struct {
-	Distance int
-}
-
-func dijkstra(matrix [][]string, start, target Point, emptyRows, emptyCols []int, factor int, resultChan chan<- Result, wg *sync.WaitGroup) {
-	defer wg.Done()
-	visited := make(map[Point]bool)
-	distance := make(map[Point]int)
-	parent := make(map[Point]Point)
-	pq := make(PriorityQueue, 0)
-
-	heap.Push(&pq, &Item{value: start, priority: 0})
-	distance[start] = 0
-
-	for pq.Len() > 0 {
-		currentItem := heap.Pop(&pq).(*Item)
-		current := currentItem.value
-
-		if current == target {
-			// path := reconstructPath(parent, start, target)
-			fmt.Printf("Found path from (%d, %d) --> (%d, %d): %d\n", start.x, start.y, target.x, target.y, distance[current])
-			resultChan <- Result{Distance: distance[current]}
-			return
-		}
-
-		if !visited[current] {
-			visited[current] = true
-
-			for _, neighbor := range getNeighbors(matrix, current) {
-				cost := 1
-				if slices.Contains(emptyRows, neighbor.x) {
-					cost = factor
-				} else if slices.Contains(emptyCols, neighbor.y) {
-					cost = factor
-				}
-				if distance[neighbor] == 0 || distance[current]+cost < distance[neighbor] {
-					distance[neighbor] = distance[current] + cost
-					parent[neighbor] = current
-					heap.Push(&pq, &Item{value: neighbor, priority: distance[neighbor]})
+			// Check if the path would cross an empty row
+			rowCount := 0
+			for _, row := range emptyRows {
+				if row >= minPoint.x && row <= maxPoint.x {
+					rowCount++
 				}
 			}
+			colCount := 0
+			for _, col := range emptyCols {
+				if col >= minPoint.y && col <= maxPoint.y {
+					colCount++
+				}
+			}
+
+			sum += dist + (rowCount * expansion) + (colCount * expansion)
 		}
 	}
 
-	resultChan <- Result{Distance: 0} // No path found
+	return sum
 }
 
-func getNeighbors(matrix [][]string, p Point) []Point {
-	neighbors := make([]Point, 0)
-
-	// Assuming movements are allowed in all 8 directions (up, down, left, right, and diagonals)
-	directions := []Point{
-		{1, 0},  // Down
-		{-1, 0}, // Up
-		{0, 1},  // Right
-		{0, -1}, // Left
-	}
-
-	for _, dir := range directions {
-		newX, newY := p.x+dir.x, p.y+dir.y
-
-		if newX >= 0 && newX < len(matrix) && newY >= 0 && newY < len(matrix[0]) {
-			neighbors = append(neighbors, Point{newX, newY})
-		}
-	}
-
-	return neighbors
-}
-
-func reconstructPath(parent map[Point]Point, start, target Point) []Point {
-	path := make([]Point, 0)
-	current := target
-
-	for current != start {
-		path = append([]Point{current}, path...)
-		current = parent[current]
-	}
-
-	path = append([]Point{start}, path...)
-	return path
-}
-
-func printMatrix(matrix [][]string) {
-	for _, row := range matrix {
-		for _, ch := range row {
-			print(ch)
-		}
-		println()
-	}
+func partOne(input string) int {
+	galaxies, emptyRows, emptyCols := parseInput(input)
+	sum := sumDistances(galaxies, emptyRows, emptyCols, 1)
+	return sum
 }
