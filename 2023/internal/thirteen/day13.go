@@ -22,6 +22,17 @@ const testInput = `#.##..##.
 ..##..###
 #....#..#`
 
+type Reflection struct {
+	P1        int
+	P2        int
+	Direction int
+}
+
+const (
+	HRef = iota
+	VRef
+)
+
 func RunDayThirteen() {
 	input, err := os.ReadFile("./input/day13.txt")
 	if err != nil {
@@ -29,22 +40,19 @@ func RunDayThirteen() {
 	}
 
 	fmt.Println("Part 1", partOne(string(input)))
-	fmt.Println("Part 2", partTwo(string(input))) // 25448 too low
-	// fmt.Println(partOne(testInput))
-	fmt.Println(partTwo(testInput))
+	fmt.Println("Part 2", partTwo(string(input)))
 }
 
 func partOne(input string) int {
 	maps := parseInput(input)
 	sum := 0
 	for _, m := range maps {
-		dir, c := getCount(m, nil)
-
-		switch dir {
+		ref := getCount(m, nil)
+		switch ref.Direction {
 		case HRef:
-			sum += (c.P2 * 100)
+			sum += (ref.P2 * 100)
 		case VRef:
-			sum += c.P2
+			sum += ref.P2
 		}
 	}
 
@@ -54,6 +62,7 @@ func partOne(input string) int {
 func partTwo(input string) int {
 	maps := parseInput(input)
 	sum := 0
+
 	for _, m := range maps {
 		sum += summary(m)
 	}
@@ -75,19 +84,19 @@ func parseInput(input string) [][][]string {
 }
 
 func summary(m [][]string) int {
-	_, ogRef := getCount(m, nil)
+	ogRef := getCount(m, nil)
 	contrbution := 0
+	// Copy the map
+	nm := make([][]string, len(m))
+	for k := 0; k < len(m); k++ {
+		nm[k] = make([]string, len(m[0]))
+		for l := 0; l < len(m[0]); l++ {
+			nm[k][l] = m[k][l]
+		}
+	}
+
 	for i := 0; i < len(m); i++ {
 		for j := 0; j < len(m[0]); j++ {
-			// Copy the map
-			nm := make([][]string, len(m))
-			for k := 0; k < len(m); k++ {
-				nm[k] = make([]string, len(m[0]))
-				for l := 0; l < len(m[0]); l++ {
-					nm[k][l] = m[k][l]
-				}
-			}
-
 			// Flip the point
 			if nm[i][j] == "#" {
 				nm[i][j] = "."
@@ -96,11 +105,14 @@ func summary(m [][]string) int {
 			}
 
 			// Get the new reflection point
-			dir, ref := getCount(nm, &ogRef)
+			ref := getCount(nm, func(p Reflection) bool {
+				// Ignore the new reflection point if it is the same as the original
+				return p.P1 == ogRef.P1 && p.P2 == ogRef.P2 && p.Direction == ogRef.Direction
+			})
 
-			if ref.P1 != ogRef.P1 && ref.P2 != ogRef.P2 && ref.P1 != ref.P2 {
-				// fmt.Println("Found a new reflection point", ref, c)
-				switch dir {
+			// If a reflection point was found, add the contribution
+			if ref.P1 != -1 && ref.P2 != -1 { // The reflection point is not -1
+				switch ref.Direction {
 				case HRef:
 					contrbution += (ref.P2 * 100)
 				case VRef:
@@ -108,21 +120,17 @@ func summary(m [][]string) int {
 				}
 				return contrbution
 			}
+			// Flip the point back
+			if nm[i][j] == "#" {
+				nm[i][j] = "."
+			} else {
+				nm[i][j] = "#"
+			}
 		}
 	}
 
 	return contrbution
 }
-
-type Reflection struct {
-	P1 int
-	P2 int
-}
-
-const (
-	HRef = iota
-	VRef
-)
 
 func transpose(m [][]string) [][]string {
 	nm := make([][]string, len(m[0]))
@@ -135,13 +143,13 @@ func transpose(m [][]string) [][]string {
 	return nm
 }
 
-func findReflectionPoints(m [][]string, ignore Reflection) []Reflection {
+func findReflectionPoints(m [][]string, direction int, ignore func(p Reflection) bool) []Reflection {
 	i, j := 0, 1
 	rowPoints := make([]Reflection, 0)
 	for i < len(m) && j < len(m) {
 		found := checkRowsMatch(i, j, m)
-		if found && (i != ignore.P1 && j != ignore.P2) {
-			rowPoints = append(rowPoints, Reflection{P1: i, P2: j})
+		if found && !ignore(Reflection{P1: i, P2: j, Direction: direction}) {
+			rowPoints = append(rowPoints, Reflection{P1: i, P2: j, Direction: direction})
 		}
 		i++
 		j++
@@ -150,30 +158,29 @@ func findReflectionPoints(m [][]string, ignore Reflection) []Reflection {
 	return rowPoints
 }
 
-func getCount(m [][]string, ignore *Reflection) (int, Reflection) {
+func getCount(m [][]string, ignoreFunc func(p Reflection) bool) Reflection {
 	// Find the middle reflection point
 	// This will be the point where (row or col) i == j
 	// Start with Rows
-
-	if ignore == nil {
-		ignore = &Reflection{P1: -1, P2: -1}
+	if ignoreFunc == nil {
+		ignoreFunc = func(p Reflection) bool {
+			return false
+		}
 	}
-
-	rowPoints := findReflectionPoints(m, *ignore)
+	rowPoints := findReflectionPoints(m, HRef, ignoreFunc)
 	transposed := transpose(m)
-	colPoints := findReflectionPoints(transposed, *ignore)
+	colPoints := findReflectionPoints(transposed, VRef, ignoreFunc)
 
-	dir, p := getCorrectReflection(rowPoints, m, HRef)
+	_, p := getCorrectReflection(rowPoints, m, HRef)
 	if p.P1 != -1 && p.P2 != -1 {
-		return dir, p
+		return p
 	}
 
-	dir, p = getCorrectReflection(colPoints, transposed, VRef)
+	_, p = getCorrectReflection(colPoints, transposed, VRef)
 	if p.P1 != -1 && p.P2 != -1 {
-		return dir, p
+		return p
 	}
-
-	return 0, Reflection{P1: -1, P2: -1}
+	return Reflection{P1: -1, P2: -1}
 }
 
 func getCorrectReflection(refPoints []Reflection, m [][]string, reflection int) (int, Reflection) {
@@ -202,15 +209,6 @@ func getCorrectReflection(refPoints []Reflection, m [][]string, reflection int) 
 func checkRowsMatch(i, j int, m [][]string) bool {
 	for k := 0; k < len(m[0]); k++ {
 		if m[i][k] != m[j][k] {
-			return false
-		}
-	}
-	return true
-}
-
-func checkColumnsMatch(i, j int, m [][]string) bool {
-	for k := 0; k < len(m); k++ {
-		if m[k][i] != m[k][j] {
 			return false
 		}
 	}
