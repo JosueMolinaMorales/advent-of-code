@@ -1,5 +1,14 @@
 package iterators
 
+func IndexOf[T comparable](list []T, element T) int {
+	for i, v := range list {
+		if v == element {
+			return i
+		}
+	}
+	return -1
+}
+
 // Filter filters a list based on a predicate
 func Filter[T any](list []T, f func(T) bool) []T {
 	var filtered []T
@@ -53,4 +62,13 @@ func Repeat[T any](element T, times int) []T {
 		result = append(result, element)
 	}
 	return result
+}
+
+func Contains[T comparable](list []T, element T) bool {
+	for _, v := range list {
+		if v == element {
+			return true
+		}
+	}
+	return false
 }
