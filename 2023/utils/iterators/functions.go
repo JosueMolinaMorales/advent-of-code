@@ -72,3 +72,20 @@ func Contains[T comparable](list []T, element T) bool {
 	}
 	return false
 }
+
+func Find[T any](list []T, f func(T) bool) (int, *T) {
+	for i, v := range list {
+		if f(v) {
+			return i, &v
+		}
+	}
+	return -1, nil
+}
+
+func Sum[T ~int | ~float32 | ~float64](list []T) T {
+	var result T = 0
+	for _, v := range list {
+		result += v
+	}
+	return result
+}

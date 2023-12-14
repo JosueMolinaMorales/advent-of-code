@@ -3,10 +3,8 @@ package fourteen
 import (
 	"fmt"
 	"os"
-	"sort"
 	"strings"
-
-	"github.com/josuemolinamorales/aoc-2023/utils/iterators"
+	"time"
 )
 
 const testInput = `O....#....
@@ -31,11 +29,15 @@ func RunDayFourteen() {
 	if err != nil {
 		panic("Failed to read file for day 14")
 	}
-	// fmt.Println("Part 1", partOne(testInput))
-	// fmt.Println("Part 1", partOne(string(input)))
+	start := time.Now()
+	fmt.Println("Part 1", partOne(string(input)))
+	elasped := time.Since(start)
+	fmt.Println("Part 1 took", elasped)
+
+	start = time.Now()
 	fmt.Println("Part 2", partTwo(string(input)))
-	// fmt.Println("Part 2", partTwo(testInput)) // 104866 too high
-	// 103436 not correct
+	elasped = time.Since(start)
+	fmt.Println("Part 2 took", elasped)
 }
 
 const (
@@ -44,65 +46,53 @@ const (
 )
 
 func partOne(input string) int {
-	rr, cr := parseInput(input)
-	nRows := len(strings.Split(input, "\n"))
-
-	pr, _ := tiltNorth(rr, cr)
-
-	sum := 0
-	c := 0
-	for _, pr := range pr {
-		if pr[2] == RoundRock {
-			c += 1
-			sum += (nRows - pr[0])
-		}
-	}
-
-	return sum
+	m := parseInput(input)
+	tiltNorth(&m)
+	return load(&m)
 }
 
-func parseInput(input string) ([][3]int, [][3]int) {
-	rr, cr := make([][3]int, 0), make([][3]int, 0)
-	for i, line := range strings.Split(input, "\n") {
-		for j, c := range line {
-			if c == 'O' {
-				rr = append(rr, [3]int{i, j, RoundRock})
-			} else if c == '#' {
-				cr = append(cr, [3]int{i, j, CubedRock})
+func parseInput(input string) [][]string {
+	matrix := make([][]string, 0)
+	for _, line := range strings.Split(input, "\n") {
+		row := make([]string, 0)
+		for _, c := range line {
+			row = append(row, string(c))
+		}
+		matrix = append(matrix, row)
+	}
+	return matrix
+}
+
+func load(matrix *[][]string) int {
+	load := 0
+	for i, row := range *matrix {
+		for _, c := range row {
+			if c == "O" {
+				load += len(*matrix) - i
 			}
 		}
-	}
-	return rr, cr
-}
-
-func load(rr [][3]int, nRows int) int {
-	load := 0
-	for _, r := range rr {
-		load += (nRows - r[0])
 	}
 	return load
 }
 
 func partTwo(input string) int {
-	rr, cr := parseInput(input)
-	nRows := len(strings.Split(input, "\n"))
-	nCols := len(strings.Split(input, "\n")[0])
+	matrix := parseInput(input)
 	seen := make(map[string]int)
 	loads := make([]int, 1)
 	currBoard := ""
 	i := 1
 	for i < 100_000_000 {
 		// Tilt the board north
-		rr, cr = tiltNorth(rr, cr)
+		tiltNorth(&matrix)
 		// Tilt the board west
-		rr, cr = tiltWest(rr, cr)
+		tiltWest(&matrix)
 		// Tilt the board south
-		rr, cr = tiltSouth(rr, cr, nRows)
+		tiltSouth(&matrix)
 		// Tilt the board east
-		rr, cr = tiltEast(rr, cr, nCols)
+		tiltEast(&matrix)
 
-		loads = append(loads, load(rr, nRows))
-		currBoard = buildKey(input, rr, cr)
+		loads = append(loads, load(&matrix))
+		currBoard = buildKey(&matrix)
 		if _, ok := seen[currBoard]; ok {
 			break
 		}
@@ -110,180 +100,125 @@ func partTwo(input string) int {
 		i++
 	}
 
-	lam := i - seen[currBoard] // The lenght of the loop
-	mu := seen[currBoard]      // The index of the first element of the loop
+	lenLoop := i - seen[currBoard] // The length of the loop
+	idx := seen[currBoard]         // The index of the first element of the loop
 
-	times := mu + (1_000_000_000-mu)%lam
-	return loads[times]
+	t := idx + (1_000_000_000-idx)%lenLoop
+	return loads[t]
 }
 
-func buildKey(input string, rr [][3]int, cr [][3]int) string {
+func buildKey(matrix *[][]string) string {
 	board := ""
-	for i, line := range strings.Split(input, "\n") {
-		for j := range line {
-			if iterators.Some(rr, func(p [3]int) bool {
-				return p[0] == i && p[1] == j
-			}) {
-				board += "O"
-			} else if iterators.Some(cr, func(p [3]int) bool {
-				return p[0] == i && p[1] == j
-			}) {
-				board += "#"
-			} else {
-				board += "."
-			}
-		}
+	for _, row := range *matrix {
+		board += strings.Join(row, "")
 	}
 	return board
 }
 
-func tiltNorth(rr [][3]int, cr [][3]int) ([][3]int, [][3]int) {
-	// Tilt the board up
-	placedRocks := make([][3]int, 0)
-	// Add crs
-	placedRocks = append(placedRocks, cr...)
+func tiltNorth(matrix *[][]string) {
+	for row := 1; row < len(*matrix); row++ {
+		for col := 0; col < len((*matrix)[0]); col++ {
+			if (*matrix)[row][col] == "O" {
+				// Check if there is already a rock below it
+				rockPlaced := -1
+				for i := row; i > 0; i-- {
+					if (*matrix)[i-1][col] == "O" || (*matrix)[i-1][col] == "#" {
+						// Hit rock
+						(*matrix)[i][col] = "O" // Move the rock to the place
+						rockPlaced = i
+						break
+					}
+				}
 
-	sort.Slice(rr, func(i, j int) bool {
-		return rr[i][0] < rr[j][0]
-	})
-	for i := 0; len(rr) > 0; i++ {
-		// Check if there is already a rock below it
-		rockPlaced := false
-		r := rr[0]
-		rr = rr[1:]
-		for i := r[0] - 1; i >= 0; i-- {
-			if iterators.Some(rr, func(p [3]int) bool {
-				return p[1] == r[1] && p[0] == i
-			}) || iterators.Some(placedRocks, func(p [3]int) bool {
-				return p[1] == r[1] && p[0] == i
-			}) {
-				// Hit rock, move up 1 and place
-				r[0] = i + 1
-				rockPlaced = true
-				placedRocks = append(placedRocks, r)
-				break
+				if rockPlaced == -1 {
+					(*matrix)[0][col] = "O"
+				}
+
+				if rockPlaced != row {
+					(*matrix)[row][col] = "."
+				}
 			}
 		}
-		if !rockPlaced {
-			r[0] = 0
-			placedRocks = append(placedRocks, r)
-		}
 	}
-
-	return iterators.Filter(placedRocks, func(p [3]int) bool {
-		return p[2] == RoundRock
-	}), cr
 }
 
-func tiltWest(rr [][3]int, cr [][3]int) ([][3]int, [][3]int) {
-	// Tilt the board up
-	placedRocks := make([][3]int, 0)
-	// Add crs
-	placedRocks = append(placedRocks, cr...)
-	sort.Slice(rr, func(i, j int) bool {
-		return rr[i][1] < rr[j][1]
-	})
-	for i := 0; len(rr) > 0; i++ {
-		// Check if there is already a rock below it
-		rockPlaced := false
-		r := rr[0]
-		rr = rr[1:]
-		for i := r[1] - 1; i >= 0; i-- {
-			if iterators.Some(rr, func(p [3]int) bool {
-				return p[1] == i && p[0] == r[0]
-			}) || iterators.Some(placedRocks, func(p [3]int) bool {
-				return p[1] == i && p[0] == r[0]
-			}) {
-				// Hit rock, move left 1 and place
-				r[1] = i + 1
-				rockPlaced = true
-				placedRocks = append(placedRocks, r)
-				break
+func tiltWest(matrix *[][]string) {
+	for col := 1; col < len((*matrix)[0]); col++ {
+		for row := 0; row < len(*matrix); row++ {
+			if (*matrix)[row][col] == "O" {
+				// Check if there is already a rock below it
+				rockPlaced := -1
+				for i := col; i > 0; i-- {
+					if (*matrix)[row][i-1] == "O" || (*matrix)[row][i-1] == "#" {
+						// Hit rock
+						(*matrix)[row][i] = "O" // Move the rock to the place
+						rockPlaced = i
+						break
+					}
+				}
+
+				if rockPlaced == -1 {
+					(*matrix)[row][0] = "O"
+				}
+
+				if rockPlaced != col {
+					(*matrix)[row][col] = "."
+				}
 			}
 		}
-		if !rockPlaced {
-			r[1] = 0
-			placedRocks = append(placedRocks, r)
-		}
 	}
-
-	return iterators.Filter(placedRocks, func(p [3]int) bool {
-		return p[2] == RoundRock
-	}), cr
 }
 
-func tiltSouth(rr [][3]int, cr [][3]int, maxRows int) ([][3]int, [][3]int) {
-	// Tilt the board up
-	placedRocks := make([][3]int, 0)
-	// Add crs
-	placedRocks = append(placedRocks, cr...)
+func tiltSouth(matrix *[][]string) {
+	for row := len(*matrix) - 2; row >= 0; row-- {
+		for col := 0; col < len((*matrix)[0]); col++ {
+			if (*matrix)[row][col] == "O" {
+				// Check if there is already a rock below it
+				rockPlaced := -1
+				for i := row; i < len(*matrix)-1; i++ {
+					if (*matrix)[i+1][col] == "O" || (*matrix)[i+1][col] == "#" {
+						// Hit rock
+						(*matrix)[i][col] = "O" // Move the rock to the place
+						rockPlaced = i
+						break
+					}
+				}
 
-	sort.Slice(rr, func(i, j int) bool {
-		return rr[i][0] > rr[j][0]
-	})
-	for i := 0; len(rr) > 0; i++ {
-		// Check if there is already a rock below it
-		rockPlaced := false
-		r := rr[0]
-		rr = rr[1:]
-		for i := r[0] + 1; i < maxRows; i++ {
-			if iterators.Some(rr, func(p [3]int) bool {
-				return p[1] == r[1] && p[0] == i
-			}) || iterators.Some(placedRocks, func(p [3]int) bool {
-				return p[1] == r[1] && p[0] == i
-			}) {
-				// Hit rock, move down 1 and place
-				r[0] = i - 1
-				rockPlaced = true
-				placedRocks = append(placedRocks, r)
-				break
+				if rockPlaced == -1 {
+					(*matrix)[len(*matrix)-1][col] = "O"
+				}
+
+				if rockPlaced != row {
+					(*matrix)[row][col] = "."
+				}
 			}
 		}
-		if !rockPlaced {
-			r[0] = maxRows - 1
-			placedRocks = append(placedRocks, r)
-		}
 	}
-
-	return iterators.Filter(placedRocks, func(p [3]int) bool {
-		return p[2] == RoundRock
-	}), cr
 }
 
-func tiltEast(rr [][3]int, cr [][3]int, maxCols int) ([][3]int, [][3]int) {
-	// Tilt the board up
-	placedRocks := make([][3]int, 0)
-	// Add crs
-	placedRocks = append(placedRocks, cr...)
+func tiltEast(matrix *[][]string) {
+	for col := len((*matrix)[0]) - 2; col >= 0; col-- {
+		for row := 0; row < len(*matrix); row++ {
+			if (*matrix)[row][col] == "O" {
+				// Check if there is already a rock below it
+				rockPlaced := -1
+				for i := col; i < len((*matrix)[0])-1; i++ {
+					if (*matrix)[row][i+1] == "O" || (*matrix)[row][i+1] == "#" {
+						// Hit rock
+						(*matrix)[row][i] = "O" // Move the rock to the place
+						rockPlaced = i
+						break
+					}
+				}
 
-	sort.Slice(rr, func(i, j int) bool {
-		return rr[i][1] > rr[j][1]
-	})
-	for i := 0; len(rr) > 0; i++ {
-		// Check if there is already a rock below it
-		rockPlaced := false
-		r := rr[0]
-		rr = rr[1:]
-		for i := r[1] + 1; i < maxCols; i++ {
-			if iterators.Some(rr, func(p [3]int) bool {
-				return p[1] == i && p[0] == r[0]
-			}) || iterators.Some(placedRocks, func(p [3]int) bool {
-				return p[1] == i && p[0] == r[0]
-			}) {
-				// Hit rock, move right 1 and place
-				r[1] = i - 1
-				rockPlaced = true
-				placedRocks = append(placedRocks, r)
-				break
+				if rockPlaced == -1 {
+					(*matrix)[row][len((*matrix)[0])-1] = "O"
+				}
+
+				if rockPlaced != col {
+					(*matrix)[row][col] = "."
+				}
 			}
 		}
-		if !rockPlaced {
-			r[1] = maxCols - 1
-			placedRocks = append(placedRocks, r)
-		}
 	}
-
-	return iterators.Filter(placedRocks, func(p [3]int) bool {
-		return p[2] == RoundRock
-	}), cr
 }
