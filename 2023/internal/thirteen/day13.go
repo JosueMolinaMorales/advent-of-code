@@ -161,7 +161,6 @@ func findReflectionPoints(m [][]string, direction int, ignore func(p Reflection)
 func getCount(m [][]string, ignoreFunc func(p Reflection) bool) Reflection {
 	// Find the middle reflection point
 	// This will be the point where (row or col) i == j
-	// Start with Rows
 	if ignoreFunc == nil {
 		ignoreFunc = func(p Reflection) bool {
 			return false
@@ -171,39 +170,33 @@ func getCount(m [][]string, ignoreFunc func(p Reflection) bool) Reflection {
 	transposed := transpose(m)
 	colPoints := findReflectionPoints(transposed, VRef, ignoreFunc)
 
-	_, p := getCorrectReflection(rowPoints, m, HRef)
+	p := getCorrectReflection(rowPoints, m, HRef)
 	if p.P1 != -1 && p.P2 != -1 {
 		return p
 	}
 
-	_, p = getCorrectReflection(colPoints, transposed, VRef)
+	p = getCorrectReflection(colPoints, transposed, VRef)
 	if p.P1 != -1 && p.P2 != -1 {
 		return p
 	}
 	return Reflection{P1: -1, P2: -1}
 }
 
-func getCorrectReflection(refPoints []Reflection, m [][]string, reflection int) (int, Reflection) {
-	c := 0
+func getCorrectReflection(refPoints []Reflection, m [][]string, reflection int) Reflection {
 	for _, rp := range refPoints {
-		c += 2
-		dTop := rp.P1 - 1
-		dBottom := rp.P2 + 1
-		for dTop >= 0 && dBottom < len(m) {
+		refFound := true
+		for dt, db := rp.P1-1, rp.P2+1; dt >= 0 && db < len(m); dt, db = dt-1, db+1 {
 			// Check if the rows are the same
-			if !checkRowsMatch(dTop, dBottom, m) {
-				c = 0
+			if !checkRowsMatch(dt, db, m) {
+				refFound = false
 				break
 			}
-			dTop -= 1
-			dBottom += 1
-			c += 1
 		}
-		if c != 0 {
-			return reflection, rp
+		if refFound {
+			return rp
 		}
 	}
-	return reflection, Reflection{P1: -1, P2: -1}
+	return Reflection{P1: -1, P2: -1}
 }
 
 func checkRowsMatch(i, j int, m [][]string) bool {
