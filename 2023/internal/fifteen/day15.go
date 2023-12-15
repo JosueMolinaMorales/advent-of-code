@@ -16,31 +16,19 @@ func RunDayFifteen() {
 	if err != nil {
 		panic("Failed to read day 15 file")
 	}
-	// fmt.Println("Part one", partOne(testInput))
-	// fmt.Println("Part one", partOne(string(input)))
-	// fmt.Println("Part two", partTwo(testInput))
+	fmt.Println("Part one", partOne(string(input)))
 	fmt.Println("Part two", partTwo(string(input)))
 }
 
 func partOne(input string) int {
 	sum := 0
 	for _, line := range strings.Split(input, ",") {
-		line = strings.TrimSpace(line)
-		if len(line) == 0 {
-			continue
-		}
 		sum += hash(line)
 	}
 
 	return sum
 }
 
-/*
-Determine the ASCII code for the current character of the string.
-Increase the current value by the ASCII code you just determined.
-Set the current value to itself multiplied by 17.
-Set the current value to the remainder of dividing itself by 256.
-*/
 func hash(input string) int {
 	current := 0
 	for _, char := range input {
@@ -61,45 +49,31 @@ type Box struct {
 	Values []Value
 }
 
-const (
-	Add = iota
-	Remove
-)
-
 func partTwo(input string) int {
 	hm := make([]Box, 256)
 	for _, line := range strings.Split(input, ",") {
-		line = strings.TrimSpace(line)
-		if len(line) == 0 {
-			continue
-		}
-		key := ""
-		value := 0
-		operation := Add
+		key, op, value := "", "", 0
 		for i, char := range line {
 			if char == '-' {
-				operation = Remove
+				op = "remove"
 				break
 			}
 			if char == '=' {
-				n, err := strconv.Atoi(line[i+1:])
-				if err != nil {
-					panic("Failed to convert string to int")
-				}
+				n, _ := strconv.Atoi(line[i+1:])
 				value = n
+				op = "add"
 				break
 			}
 			key += string(char)
 		}
 		idx := hash(key)
-		switch operation {
-		case Add:
-			// fmt.Println(idx, key, value, "Adding")
-			// Loop through the values of the box
-			bi, item := iterators.Find(hm[idx].Values, func(v Value) bool {
-				return v.Key == key
-			})
-			if bi != -1 {
+		matchKey := func(v Value) bool {
+			return v.Key == key
+		}
+		switch op {
+		case "add":
+			// Find the value to change
+			if bi, item := iterators.Find(hm[idx].Values, matchKey); bi != -1 {
 				// Key found in box, replace it
 				item.Value = value
 				hm[idx].Values[bi] = *item
@@ -107,29 +81,13 @@ func partTwo(input string) int {
 				// If not found, add it to the end of the box
 				hm[idx].Values = append(hm[idx].Values, Value{Key: key, Value: value})
 			}
-
-		case Remove:
+		case "remove":
 			// Find the item to remove
-			i, _ := iterators.Find(hm[idx].Values, func(v Value) bool {
-				return v.Key == key
-			})
-			if i != -1 {
-				// Found item
+			if i, _ := iterators.Find(hm[idx].Values, matchKey); i != -1 {
 				hm[idx].Values = append(hm[idx].Values[:i], hm[idx].Values[i+1:]...)
 			}
 		}
 	}
-	// Print boxes
-	// for i, box := range hm {
-	// 	if len(box.Values) == 0 {
-	// 		continue
-	// 	}
-	// 	fmt.Printf("Box %d: [", (i + 1))
-	// 	for _, value := range box.Values {
-	// 		fmt.Printf("(%s, %d), ", value.Key, value.Value)
-	// 	}
-	// 	fmt.Println("]")
-	// }
 	sum := 0
 	for i, box := range hm {
 		for j, value := range box.Values {
