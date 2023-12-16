@@ -89,3 +89,13 @@ func Sum[T ~int | ~float32 | ~float64](list []T) T {
 	}
 	return result
 }
+
+func Max[T ~int | ~float32 | ~float64](list []T) T {
+	var result T = list[0]
+	for _, v := range list {
+		if v > result {
+			result = v
+		}
+	}
+	return result
+}
