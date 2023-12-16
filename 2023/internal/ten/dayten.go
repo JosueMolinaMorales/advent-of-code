@@ -85,12 +85,10 @@ func RunDayTen() {
 	if err != nil {
 		panic("Failed to read day 10 input")
 	}
-	// res, _ := partOne(string(input))
-	// println("Part 1:", res)
-	// // 680 too high
-	res := partTwo(string(input))
+	res, _ := partOne(string(input))
+	fmt.Println("Part 1:", res)
+	res = partTwo(string(input))
 	println("Part 2:", res)
-	// fmt.Println(p2())
 }
 
 func partTwo(input string) int {

@@ -79,10 +79,8 @@ func partOne(input string) int {
 	foodMaps, seeds := parseInput(input)
 	locations := make([]int, 0)
 
-	fmt.Println(seeds)
 	for _, seed := range seeds {
 		for _, fm := range foodMaps {
-			// fmt.Println("Map", i+1)
 			for _, m := range fm.Maps {
 				if seed >= m.SourceStart && seed <= m.SourceEnd {
 					// New mapping --> seed + (ds - ss)
@@ -92,10 +90,8 @@ func partOne(input string) int {
 					break
 				}
 			}
-			// fmt.Println("Seed: ", seed)
 		}
 		locations = append(locations, seed)
-		// fmt.Println(locations)
 	}
 
 	min := slices.Min(locations)

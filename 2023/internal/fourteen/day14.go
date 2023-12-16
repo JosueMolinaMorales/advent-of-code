@@ -18,12 +18,6 @@ O.#..O.#.#
 #....###..
 #OO..#....`
 
-type Point struct {
-	Row int
-	Col int
-	Val rune
-}
-
 func RunDayFourteen() {
 	input, err := os.ReadFile("./input/day14.txt")
 	if err != nil {
@@ -39,11 +33,6 @@ func RunDayFourteen() {
 	elasped = time.Since(start)
 	fmt.Println("Part 2 took", elasped)
 }
-
-const (
-	RoundRock = iota
-	CubedRock
-)
 
 func partOne(input string) int {
 	m := parseInput(input)
