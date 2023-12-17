@@ -4,7 +4,6 @@ import (
 	"container/heap"
 	"fmt"
 	"math"
-	"os"
 	"strconv"
 	"strings"
 )
@@ -33,12 +32,13 @@ const test = `111
 551`
 
 func RunDaySeventeen() {
-	input, err := os.ReadFile("./input/day17.txt")
-	if err != nil {
-		panic("Failed to read day 17 input file")
-	}
-	fmt.Println("Part 1", partOne(string(input)))
-	fmt.Println("Part 2", partTwo(string(input)))
+	// input, err := os.ReadFile("./input/day17.txt")
+	// if err != nil {
+	// 	panic("Failed to read day 17 input file")
+	// }
+	// fmt.Println("Part 1", partOne(string(input)))
+	// fmt.Println("Part 2", partTwo(string(input)))
+	fmt.Println("Part 1", partOne(testInput))
 }
 
 func parseInput(input string) [][]int {
@@ -111,10 +111,14 @@ func (pq *PriorityQueue) Pop() interface{} {
 	return item
 }
 
+func key(x, y int, dir Point) string {
+	return fmt.Sprintf("%d,%d,%d,%d", x, y, dir.X, dir.Y)
+}
+
 func getMinHeatLoss(heatLossMap [][]int, blocksBeforeTurn, maxInDirection int) int {
 	// Initialize a map to store cumulative heat losses for each position and direction.
 	dist := make(map[Point]map[Point]int)
-	paths := make(map[Point][]Point)
+	paths := make(map[string][]Point)
 	// Initialize the cumulative heat losses for the starting position and directions.
 	for x := 0; x < len(heatLossMap[0]); x++ {
 		for y := 0; y < len(heatLossMap); y++ {
@@ -128,12 +132,13 @@ func getMinHeatLoss(heatLossMap [][]int, blocksBeforeTurn, maxInDirection int) i
 	}
 
 	dist[Point{0, 0}][RIGHT] = 0
-	paths[Point{0, 0}] = make([]Point, 0)
+	paths[key(0, 0, RIGHT)] = make([]Point, 0)
 	dist[Point{0, 0}][DOWN] = 0
-	paths[Point{0, 0}] = make([]Point, 0)
+	paths[key(0, 0, DOWN)] = make([]Point, 0)
 	dist[Point{0, 0}][UP] = 0
-	paths[Point{0, 0}] = make([]Point, 0)
+	paths[key(0, 0, LEFT)] = make([]Point, 0)
 	dist[Point{0, 0}][LEFT] = 0
+	paths[key(0, 0, UP)] = make([]Point, 0)
 
 	// Priority queue for Dijkstra's algorithm
 	pq := make(PriorityQueue, 0)
@@ -175,7 +180,7 @@ func getMinHeatLoss(heatLossMap [][]int, blocksBeforeTurn, maxInDirection int) i
 				if heatLoss < dist[Point{x, y}][newDir] {
 					dist[Point{x, y}][newDir] = heatLoss
 					heap.Push(&pq, &Item{heatLoss, Point{x, y}, newDir})
-					paths[Point{x, y}] = append(paths[Point{x, y}], position)
+					paths[key(x, y, newDir)] = append(paths[key(x, y, newDir)], position)
 				}
 			}
 		}
@@ -187,9 +192,14 @@ func getMinHeatLoss(heatLossMap [][]int, blocksBeforeTurn, maxInDirection int) i
 		result = int(math.Min(float64(result), float64(dist[Point{len(heatLossMap) - 1, len(heatLossMap[0]) - 1}][direction])))
 	}
 
+	for k, v, := range dist {
+		fmt.Println(k, v)
+	}
+
 	// Print the path
-	path := paths[Point{len(heatLossMap) - 1, len(heatLossMap[0]) - 1}]
-	fmt.Println(path)
+	for k, v := range paths {
+		fmt.Println(k, v)
+	}
 
 	return result
 }
