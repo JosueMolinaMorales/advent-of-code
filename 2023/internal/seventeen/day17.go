@@ -5,11 +5,8 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"slices"
 	"strconv"
 	"strings"
-
-	"github.com/josuemolinamorales/aoc-2023/utils/iterators"
 )
 
 const testInput = `2413432311323
@@ -36,12 +33,15 @@ const test = `111
 551`
 
 func RunDaySeventeen() {
-	input, _ := os.ReadFile("./input/day17.txt")
+	input, err := os.ReadFile("./input/day17.txt")
+	if err != nil {
+		panic("Failed to read day 17 input file")
+	}
 	fmt.Println("Part 1", partOne(string(input)))
-	// fmt.Println("Part 1", partOne(testInput))
+	fmt.Println("Part 2", partTwo(string(input)))
 }
 
-func partTwo(input string) int {
+func parseInput(input string) [][]int {
 	m := make([][]int, 0)
 	for _, line := range strings.Split(input, "\n") {
 		row := make([]int, 0)
@@ -51,54 +51,56 @@ func partTwo(input string) int {
 		}
 		m = append(m, row)
 	}
+	return m
+}
 
-	minHeatLoss := minHeatLossDijkstra(m, 3, 10)
-
+func partTwo(input string) int {
+	m := parseInput(input)
+	minHeatLoss := getMinHeatLoss(m, 3, 10)
 	return minHeatLoss
 }
 
 func partOne(input string) int {
-	m := make([][]int, 0)
-	for _, line := range strings.Split(input, "\n") {
-		row := make([]int, 0)
-		for _, c := range line {
-			num, _ := strconv.Atoi(string(c))
-			row = append(row, num)
-		}
-		m = append(m, row)
-	}
-
-	minHeatLoss := minHeatLossDijkstra(m, 0, 3)
-
+	m := parseInput(input)
+	minHeatLoss := getMinHeatLoss(m, 0, 3)
 	return minHeatLoss
 }
 
+var (
+	RIGHT, LEFT, UP, DOWN = Point{1, 0}, Point{-1, 0}, Point{0, -1}, Point{0, 1}
+	TURNS                 = map[Point][]Point{
+		RIGHT: {UP, DOWN},
+		LEFT:  {UP, DOWN},
+		UP:    {LEFT, RIGHT},
+		DOWN:  {LEFT, RIGHT},
+	}
+)
+
 type Point struct {
-	row, col         int
-	heatLoss         int
-	prev             *Point
-	numStraightMoves int
+	X, Y int
 }
 
-type PriorityQueue []*Point
+type Item struct {
+	heatLoss  int
+	position  Point
+	direction Point
+}
 
-func (pq PriorityQueue) Len() int      { return len(pq) }
-func (pq PriorityQueue) Swap(i, j int) { pq[i], pq[j] = pq[j], pq[i] }
+type PriorityQueue []*Item
+
+func (pq PriorityQueue) Len() int { return len(pq) }
+
 func (pq PriorityQueue) Less(i, j int) bool {
 	return pq[i].heatLoss < pq[j].heatLoss
 }
 
-func (pq PriorityQueue) Get(p *Point) int {
-	for i, point := range pq {
-		if point.row == p.row && point.col == p.col && point.prev.row == p.prev.row && point.prev.col == p.prev.col && point.numStraightMoves == p.numStraightMoves {
-			return i
-		}
-	}
-	return -1
+func (pq PriorityQueue) Swap(i, j int) {
+	pq[i], pq[j] = pq[j], pq[i]
 }
 
 func (pq *PriorityQueue) Push(x interface{}) {
-	*pq = append(*pq, x.(*Point))
+	item := x.(*Item)
+	*pq = append(*pq, item)
 }
 
 func (pq *PriorityQueue) Pop() interface{} {
@@ -109,158 +111,77 @@ func (pq *PriorityQueue) Pop() interface{} {
 	return item
 }
 
-func key(p *Point) string {
-	prev := p.prev
-	if prev == nil {
-		prev = &Point{-1, -1, -1, nil, -1}
+func getMinHeatLoss(heatLossMap [][]int, blocksBeforeTurn, maxInDirection int) int {
+	// Initialize a map to store cumulative heat losses for each position and direction.
+	dist := make(map[Point]map[Point]int)
+
+	// Initialize the cumulative heat losses for the starting position and directions.
+	for x := 0; x < len(heatLossMap[0]); x++ {
+		for y := 0; y < len(heatLossMap); y++ {
+			dist[Point{x, y}] = map[Point]int{
+				RIGHT: math.MaxInt,
+				DOWN:  math.MaxInt,
+				UP:    math.MaxInt,
+				LEFT:  math.MaxInt,
+			}
+		}
 	}
-	return fmt.Sprintf("%d,%d,%d,%d,%d", p.row, p.col, prev.row, prev.col, p.numStraightMoves)
-}
 
-func minHeatLossDijkstra(matrix [][]int, maxInDir int, blockBeforeTurn int) int {
-	rows, cols := len(matrix), len(matrix[0])
+	dist[Point{0, 0}][RIGHT] = 0
+	dist[Point{0, 0}][DOWN] = 0
+	dist[Point{0, 0}][UP] = 0
+	dist[Point{0, 0}][LEFT] = 0
 
-	visited := make(map[string]bool)
-	// Initialize priority queue
+	// Priority queue for Dijkstra's algorithm
 	pq := make(PriorityQueue, 0)
 	heap.Init(&pq)
+	heap.Push(&pq, &Item{0, Point{0, 0}, RIGHT})
+	heap.Push(&pq, &Item{0, Point{0, 0}, DOWN})
 
-	// Initialize distance array
-	distance := make([][]int, rows)
-	for i := range distance {
-		distance[i] = make([]int, cols)
-		for j := range distance[i] {
-			distance[i][j] = math.MaxInt
-		}
-	}
+	// Dijkstra's algorithm loop
+	for len(pq) > 0 {
+		// Pop the item with the minimum heat loss from the priority queue
+		item := heap.Pop(&pq).(*Item)
+		heatLoss, position, direction := item.heatLoss, item.position, item.direction
 
-	start := &Point{0, 0, matrix[0][0], nil, 0}
-	heap.Push(&pq, start)
-	heap.Push(&pq, &Point{0, 1, matrix[0][1], start, 0})
-
-	distance[0][0] = start.heatLoss
-
-	// Directions: right, down, left, up
-	directions := [][]int{{0, 1}, {1, 0}, {0, -1}, {-1, 0}}
-
-	points := make([]*Point, 0)
-	for pq.Len() > 0 {
-		// Get the current point
-		current := heap.Pop(&pq).(*Point)
-		// If this point has already been visited, skip it
-		if visited[key(current)] {
+		// Skip if the current heat loss is greater than the recorded heat loss for the position and direction
+		if heatLoss > dist[position][direction] {
 			continue
 		}
-		// Set the point to visited
-		visited[key(current)] = true
-		points = append(points, current)
-		straightMoves := straightCount(current)
 
-		// Look at the adjacent points
-		for _, dir := range directions {
-			newRow, newCol := current.row+dir[0], current.col+dir[1]
-			// Bounds check
-			if newRow < 0 || newRow >= rows || newCol < 0 || newCol >= cols {
+		// Move in the current direction and accumulate heat losses
+		x, y := position.X, position.Y
+		for block := 0; block < maxInDirection; block++ {
+			x, y = x+direction.X, y+direction.Y
+
+			// Break if out of bounds
+			if x < 0 || x >= len(heatLossMap[0]) || y < 0 || y >= len(heatLossMap) {
+				break
+			}
+
+			// Accumulate heat losses
+			heatLoss += heatLossMap[y][x]
+
+			// Crucible needs to move a minimum of N blocks in that direction before it can turn
+			if block < blocksBeforeTurn {
 				continue
 			}
-			moves := straightMoves
-			moved := false
-			if moves > 3 {
-				// Cant move in the same direction, need to go left or right
-				if current.row == newRow || current.col == newCol {
-					continue
-				}
-				moved = true
-			}
-			if moved {
-				moves = 0
-			} else {
-				moves++
-			}
 
-			newPoint := &Point{newRow, newCol, matrix[newRow][newCol] + current.heatLoss, current, moves}
-			// if the point is already in the queue, update the heat loss
-			idx := pq.Get(newPoint)
-			if idx != -1 {
-				if newPoint.heatLoss < pq[idx].heatLoss {
-					pq[idx].heatLoss = newPoint.heatLoss
-					pq[idx].prev = newPoint.prev
-					pq[idx].numStraightMoves = newPoint.numStraightMoves
-					heap.Fix(&pq, idx)
+			// Turn the crucible and update heat losses for the new direction
+			for _, newDir := range TURNS[direction] {
+				if heatLoss < dist[Point{x, y}][newDir] {
+					dist[Point{x, y}][newDir] = heatLoss
+					heap.Push(&pq, &Item{heatLoss, Point{x, y}, newDir})
 				}
 			}
-
-			// Add the point to the queue
-			heap.Push(&pq, newPoint)
-			distance[newRow][newCol] = int(math.Min(float64(distance[newRow][newCol]), float64(newPoint.heatLoss)))
 		}
-
 	}
 
-	// For fun print the path
-	printPath(points, matrix)
-
-	// The minimum heat loss at the bottom-right corner
-	return distance[rows-1][cols-1]
-}
-
-func printPath(points []*Point, m [][]int) {
-	// Print out the path
-	i, _ := iterators.Find(points, func(p *Point) bool {
-		return p.row == len(m)-1 && p.col == len(m[0])-1
-	})
-
-	current := points[i]
-	path := make([]*Point, 0)
-	for current != nil {
-		path = append(path, current)
-		current = current.prev
-	}
-	for i, row := range m {
-		for j, col := range row {
-			if slices.ContainsFunc(path, func(p *Point) bool {
-				return p != nil && p.row == i && p.col == j
-			}) {
-				fmt.Printf("%d ", col)
-			} else {
-				fmt.Printf("  ")
-			}
-		}
-		fmt.Println()
-	}
-}
-
-func straightCount(current *Point) int {
-	if current.prev == nil {
-		return 0
-	}
-	og := current
-	hCount := 0
-	for current.prev != nil {
-		if current.row == current.prev.row {
-			hCount++
-		} else {
-			break
-		}
-		current = current.prev
+	// Find the minimum heat loss among the final positions for each direction
+	result := math.MaxInt
+	for _, direction := range []Point{RIGHT, DOWN, UP, LEFT} {
+		result = int(math.Min(float64(result), float64(dist[Point{len(heatLossMap) - 1, len(heatLossMap[0]) - 1}][direction])))
 	}
 
-	if hCount >= 3 {
-		return hCount
-	} else if hCount != 0 {
-		return hCount
-	}
-
-	count := 0
-	current = og
-	for current.prev != nil {
-		if current.col == current.prev.col {
-			count++
-		} else {
-			break
-		}
-		current = current.prev
-	}
-
-	return count
+	return result
 }
