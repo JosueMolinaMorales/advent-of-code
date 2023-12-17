@@ -114,7 +114,7 @@ func (pq *PriorityQueue) Pop() interface{} {
 func getMinHeatLoss(heatLossMap [][]int, blocksBeforeTurn, maxInDirection int) int {
 	// Initialize a map to store cumulative heat losses for each position and direction.
 	dist := make(map[Point]map[Point]int)
-
+	paths := make(map[Point][]Point)
 	// Initialize the cumulative heat losses for the starting position and directions.
 	for x := 0; x < len(heatLossMap[0]); x++ {
 		for y := 0; y < len(heatLossMap); y++ {
@@ -128,8 +128,11 @@ func getMinHeatLoss(heatLossMap [][]int, blocksBeforeTurn, maxInDirection int) i
 	}
 
 	dist[Point{0, 0}][RIGHT] = 0
+	paths[Point{0, 0}] = make([]Point, 0)
 	dist[Point{0, 0}][DOWN] = 0
+	paths[Point{0, 0}] = make([]Point, 0)
 	dist[Point{0, 0}][UP] = 0
+	paths[Point{0, 0}] = make([]Point, 0)
 	dist[Point{0, 0}][LEFT] = 0
 
 	// Priority queue for Dijkstra's algorithm
@@ -172,6 +175,7 @@ func getMinHeatLoss(heatLossMap [][]int, blocksBeforeTurn, maxInDirection int) i
 				if heatLoss < dist[Point{x, y}][newDir] {
 					dist[Point{x, y}][newDir] = heatLoss
 					heap.Push(&pq, &Item{heatLoss, Point{x, y}, newDir})
+					paths[Point{x, y}] = append(paths[Point{x, y}], position)
 				}
 			}
 		}
@@ -182,6 +186,10 @@ func getMinHeatLoss(heatLossMap [][]int, blocksBeforeTurn, maxInDirection int) i
 	for _, direction := range []Point{RIGHT, DOWN, UP, LEFT} {
 		result = int(math.Min(float64(result), float64(dist[Point{len(heatLossMap) - 1, len(heatLossMap[0]) - 1}][direction])))
 	}
+
+	// Print the path
+	path := paths[Point{len(heatLossMap) - 1, len(heatLossMap[0]) - 1}]
+	fmt.Println(path)
 
 	return result
 }
