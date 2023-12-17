@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/josuemolinamorales/aoc-2023/internal/sixteen"
+	"github.com/josuemolinamorales/aoc-2023/internal/seventeen"
 )
 
 func main() {
@@ -20,5 +20,6 @@ func main() {
 	// thirteen.RunDayThirteen()
 	// fourteen.RunDayFourteen()
 	// fifteen.RunDayFifteen()
-	sixteen.RunDaySixteen()
+	// sixteen.RunDaySixteen()
+	seventeen.RunDaySeventeen()
 }
