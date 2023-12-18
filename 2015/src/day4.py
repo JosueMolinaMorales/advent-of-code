@@ -1,14 +1,24 @@
-# Python 3 code to demonstrate the
-# working of MD5 (byte - byte)
-
 import hashlib
 
 
+def md5(key, leadingZeroes):
+    hash = ""
+    i = 0
+    while not hash.startswith(leadingZeroes):
+        i += 1
+        hash = hashlib.md5((key+str(i)).encode()).hexdigest()
+    return i
+
+
 def partOne(key):
-    print(hashlib.md5(bytes(key)))
+    return md5(key, "00000")
+
+
+def partTwo(key):
+    return md5(key, "000000")
 
 
 if __name__ == "__main__":
-    with open("./input/day4.txt", "w") as f:
-        key = f.readline()
-        print(partOne(key))
+    key = "yzbqklnj"
+    print(partOne(key))
+    print(partTwo(key))
