@@ -74,22 +74,22 @@ func partTwo(input string) int {
 		plan.Steps = int(hex)
 		digPlan = append(digPlan, plan)
 	}
-	points := expandPoints(digPlan)
+	points, b := expandPoints(digPlan)
 	area := shoelaceFormula(points)
-	return int(area) + len(points)/2 + 1
+	return int(area) + b/2 + 1
 }
 
-func expandPoints(digPlan []Plan) []Point {
+func expandPoints(digPlan []Plan) ([]Point, int) {
 	points := []Point{{0, 0}}
+	b := 0
 	for _, plan := range digPlan {
-		for i := 0; i < plan.Steps; i++ {
-			lp := points[len(points)-1]
-			dir := Directions[plan.Direction]
-			lp[0], lp[1] = lp[0]+dir[0], lp[1]+dir[1]
-			points = append(points, lp)
-		}
+		dir := Directions[plan.Direction]
+		lp := points[len(points)-1]
+		steps := plan.Steps
+		b += steps
+		points = append(points, Point{lp[0] + dir[0]*steps, lp[1] + dir[1]*steps})
 	}
-	return points
+	return points, b
 }
 
 // https://en.wikipedia.org/wiki/Shoelace_formula
@@ -113,10 +113,10 @@ func partOne(input string) int {
 		plan.RGB = p[2]
 		digPlan = append(digPlan, plan)
 	}
-	points := expandPoints(digPlan)
+	points, b := expandPoints(digPlan)
 	area := shoelaceFormula(points)
 	// print(points)
-	return int(area) + len(points)/2 + 1
+	return int(area) + b/2 + 1
 }
 
 // For fun functions
