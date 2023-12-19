@@ -140,25 +140,31 @@ func countRanges(ranges PartRanges) int {
 }
 
 func solve(ranges PartRanges, workflows map[string][]Rule, cw string) int {
+	// If the current state is ACCEPT, return the count of ranges
 	if cw == ACCEPT {
 		return countRanges(ranges)
 	} else if cw == REJECT {
 		return 0
 	}
-	rules := workflows[cw]
 
+	// Get the rules for the current state
+	rules := workflows[cw]
+	// Initialize count to 0
 	count := 0
+	// Iterate over the rules for the current state
 	for _, r := range rules {
-		// Copy ranges
+		// Copy ranges to avoid modifying the original
 		nr := PartRanges{
 			"x": ranges["x"],
 			"m": ranges["m"],
 			"a": ranges["a"],
 			"s": ranges["s"],
 		}
+
+		// Check if the rule is nil, indicating an immediate transition
 		if r.rule == nil {
 			cw = r.destination
-			// Go to next rule
+			// Go to the next rule and accumulate the count
 			count += solve(ranges, workflows, cw)
 			continue
 		}
@@ -166,16 +172,23 @@ func solve(ranges PartRanges, workflows map[string][]Rule, cw string) int {
 		cat := r.category
 		switch r.rule.operation {
 		case LESS:
+			// Adjust the ranges for the LESS operation
 			nr[cat] = Range{nr[cat].low, r.rule.amount - 1}
+			// Update the ranges for the existing range for next iteration
 			ranges[cat] = Range{r.rule.amount, ranges[cat].high}
+			// Recursively call solve with updated ranges and destination state
 			count += solve(nr, workflows, r.destination)
 		case GREATER:
+			// Adjust the ranges for the GREATER operation
 			nr[cat] = Range{r.rule.amount + 1, nr[cat].high}
+			// Update the ranges for the existing range for next iteration
 			ranges[cat] = Range{ranges[cat].low, r.rule.amount}
+			// Recursively call solve with updated ranges and destination state
 			count += solve(nr, workflows, r.destination)
 		}
 	}
 
+	// Return the accumulated count
 	return count
 }
 
