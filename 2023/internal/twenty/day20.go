@@ -2,7 +2,6 @@ package twenty
 
 import (
 	"fmt"
-	"math/big"
 	"os"
 	"strings"
 
@@ -119,28 +118,22 @@ func partTwo(input string) int {
 		return value > 0
 	}) {
 		i++
-		pules := press_button(&modules)
+		pules := pressButton(&modules)
 		for _, pulse := range pules {
 			if pulse.pulse == HIGH_PULSE && iterators.Contains(watch, pulse.from) && firstHighPulse[pulse.from] == 0 {
 				firstHighPulse[pulse.from] = i
 			}
 		}
 	}
-	values := maps.Values(firstHighPulse)
-	numbers := make([]*big.Int, 0)
-	for _, value := range values {
-		numbers = append(numbers, big.NewInt(int64(value)))
-	}
 
-	lcm := utils.MultipleLCM(numbers)
-	return int(lcm.Int64())
+	return utils.MultipleLCM(maps.Values(firstHighPulse))
 }
 
 func partOne(input string) int {
 	modules := parse(input)
 	low, high := 0, 0
 	for i := 0; i < 1000; i++ {
-		pulses := press_button(&modules)
+		pulses := pressButton(&modules)
 		for _, pulse := range pulses {
 			if pulse.pulse == HIGH_PULSE {
 				high++
@@ -152,7 +145,7 @@ func partOne(input string) int {
 	return low * high
 }
 
-func press_button(modules *map[string]Module) []Pulse {
+func pressButton(modules *map[string]Module) []Pulse {
 	firstPulse := Pulse{"button", "broadcaster", LOW_PULSE}
 	queue := []Pulse{firstPulse}
 	pulses := []Pulse{}

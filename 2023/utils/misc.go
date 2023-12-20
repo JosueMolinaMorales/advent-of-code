@@ -55,14 +55,14 @@ func Lcm(a, b *big.Int) *big.Int {
 }
 
 // Calculate the least common multiple (LCM) of multiple numbers
-func MultipleLCM(numbers []*big.Int) *big.Int {
+func MultipleLCM(numbers []int) int {
 	// Initialize the LCM with 1
 	result := big.NewInt(1)
 
 	// Iterate through each number and update the LCM
 	for _, num := range numbers {
-		result = Lcm(result, num)
+		result = Lcm(result, big.NewInt(int64(num)))
 	}
 
-	return result
+	return int(result.Int64())
 }

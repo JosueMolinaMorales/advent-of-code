@@ -2,7 +2,6 @@ package eight
 
 import (
 	"fmt"
-	"math/big"
 	"os"
 	"regexp"
 	"strings"
@@ -156,11 +155,9 @@ func partTwo(input string) int {
 	}
 
 	// Find the common multiple of cycle lengths
-	lengths := make([]*big.Int, 0)
+	lengths := make([]int, 0)
 	for _, v := range cycles {
-		lengths = append(lengths, big.NewInt(int64(len(v))))
+		lengths = append(lengths, len(v))
 	}
-	cm := utils.MultipleLCM(lengths)
-
-	return int(cm.Int64())
+	return utils.MultipleLCM(lengths)
 }
