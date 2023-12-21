@@ -51,8 +51,11 @@ func partTwo(input string) int {
 	size := len(garden)
 	half := size / 2
 	p := make([]int, 0)
+	visited := make(map[Plot]bool)
 	for _, n := range []int{half, half + size, half + 2*size} {
-		p = append(p, bfs(expanded, start, n))
+		res, v := bfs(expanded, start, n, visited)
+		visited = v
+		p = append(p, res)
 	}
 
 	// https://en.wikipedia.org/wiki/Polynomial_regression
@@ -68,17 +71,17 @@ func partTwo(input string) int {
 
 func partOne(input string) int {
 	garden, start := parse(input)
-	return bfs(garden, start, 64)
+	res, _ := bfs(garden, start, 64, map[Plot]bool{})
+	return res
 }
 
 type Plot struct {
 	x, y, step int
 }
 
-func bfs(garden [][]string, start Plot, steps int) int {
+func bfs(garden [][]string, start Plot, steps int, visited map[Plot]bool) (int, map[Plot]bool) {
 	queue := make([]Plot, 0)
 	queue = append(queue, start)
-	visited := make(map[Plot]bool, 0)
 	end := make(map[[2]int]bool, 0)
 	plots := 0
 	for len(queue) > 0 {
@@ -98,7 +101,7 @@ func bfs(garden [][]string, start Plot, steps int) int {
 		}
 	}
 	// printGarden(garden, end)
-	return plots
+	return plots, visited
 }
 
 func expandGrid(graden [][]string, times int) [][]string {
