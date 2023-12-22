@@ -99,3 +99,11 @@ func Max[T ~int | ~float32 | ~float64](list []T) T {
 	}
 	return result
 }
+
+func Reverse[T any](list []T) []T {
+	var result []T
+	for i := len(list) - 1; i >= 0; i-- {
+		result = append(result, list[i])
+	}
+	return result
+}
