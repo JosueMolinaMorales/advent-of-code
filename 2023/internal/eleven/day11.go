@@ -42,8 +42,8 @@ func RunDayEleven() {
 	if err != nil {
 		panic("Failed to read day 11 input file")
 	}
-	fmt.Println("Part 1:", partOne(string(input)))
-	fmt.Println("Part 2:", partTwo(string(input)))
+	fmt.Println("Day 11 Part 1:", partOne(string(input)))
+	fmt.Println("Day 11 Part 2:", partTwo(string(input)))
 }
 
 func parseInput(input string) ([]Point, []int, []int) {

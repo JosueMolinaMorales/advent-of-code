@@ -21,8 +21,8 @@ func RunDayTwenty() {
 	if err != nil {
 		panic("Failed to read day 20 input")
 	}
-	fmt.Println("Part one:", partOne(string(input)))
-	fmt.Println("Part two:", partTwo(string(input)))
+	fmt.Println("Day 20 Part 1:", partOne(string(input)))
+	fmt.Println("Day 20 Part 2:", partTwo(string(input)))
 }
 
 type Pulse struct {

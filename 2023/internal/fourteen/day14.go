@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 )
 
 const testInput = `O....#....
@@ -23,15 +22,8 @@ func RunDayFourteen() {
 	if err != nil {
 		panic("Failed to read file for day 14")
 	}
-	start := time.Now()
-	fmt.Println("Part 1", partOne(string(input)))
-	elasped := time.Since(start)
-	fmt.Println("Part 1 took", elasped)
-
-	start = time.Now()
-	fmt.Println("Part 2", partTwo(string(input)))
-	elasped = time.Since(start)
-	fmt.Println("Part 2 took", elasped)
+	fmt.Println("Day 14 Part 1", partOne(string(input)))
+	fmt.Println("Day 14 Part 2", partTwo(string(input)))
 }
 
 func partOne(input string) int {

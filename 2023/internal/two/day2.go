@@ -1,4 +1,4 @@
-package daytwo
+package two
 
 import (
 	"fmt"
@@ -24,14 +24,14 @@ Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red
 Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green`
 
 func RunDayTwo() {
-	input, err := os.ReadFile("./input/day2input.txt")
+	input, err := os.ReadFile("./input/day2.txt")
 	if err != nil {
 		panic("Failed to read input file for day 2")
 	}
 	res := partOne(string(input))
-	fmt.Println("Part 1:", res)
+	fmt.Println("Day 2 Part 1:", res)
 	res = partTwo(string(input))
-	fmt.Println("Part 2:", res)
+	fmt.Println("Day 2 Part 2:", res)
 }
 
 func partOne(input string) int {

@@ -1,4 +1,4 @@
-package dayfive
+package five
 
 import (
 	"fmt"
@@ -48,14 +48,14 @@ humidity-to-location map:
 */
 
 func RunDayFive() {
-	input, err := os.ReadFile("./input/day5input.txt")
+	input, err := os.ReadFile("./input/day5.txt")
 	if err != nil {
 		panic("Could not read day 5 input file")
 	}
 	res := partOne(string(input))
-	fmt.Println("Part one result: ", res)
+	fmt.Println("Day 5 Part 1", res)
 	res = partTwo(string(input))
-	fmt.Println("Part two result: ", res)
+	fmt.Println("Day 5 Part 2", res)
 }
 
 type MappingRange struct {

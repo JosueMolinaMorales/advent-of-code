@@ -1,4 +1,4 @@
-package dayseven
+package seven
 
 import (
 	"fmt"
@@ -54,14 +54,14 @@ type HandBid struct {
 }
 
 func RunDaySeven() {
-	input, err := os.ReadFile("./input/day7input.txt")
+	input, err := os.ReadFile("./input/day7.txt")
 	if err != nil {
 		panic("Cannot read day 7 file")
 	}
 	res := partOne(string(input))
-	fmt.Println("Part 1:", res)
+	fmt.Println("Day 7 Part 1:", res)
 	res = partTwo(string(input))
-	fmt.Println("Part 2:", res)
+	fmt.Println("Day 7 Part 2:", res)
 }
 
 func partTwo(input string) int {

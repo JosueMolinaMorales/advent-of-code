@@ -38,8 +38,8 @@ func RunDayEight() {
 	if err != nil {
 		panic("Failed to read day 8 file")
 	}
-	fmt.Println("Part 1:", partOne(string(input)))
-	fmt.Println("Part 2:", partTwo(string(input)))
+	fmt.Println("Day 8 Part 1:", partOne(string(input)))
+	fmt.Println("Day 8 Part 2:", partTwo(string(input)))
 }
 
 func parseInput(input string) (map[string]Node, string) {

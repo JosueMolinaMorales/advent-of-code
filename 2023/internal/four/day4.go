@@ -1,4 +1,4 @@
-package dayfour
+package four
 
 import (
 	"fmt"
@@ -24,14 +24,14 @@ Card 5: 87 83 26 28 32 | 88 30 70 12 93 22 82 36
 Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11`
 
 func RunDayFour() {
-	input, err := os.ReadFile("./input/day4input.txt")
+	input, err := os.ReadFile("./input/day4.txt")
 	if err != nil {
 		panic("Could not read file for day 4")
 	}
 	res := partOne(string(input))
-	fmt.Println("Part 1:", res)
+	fmt.Println("Day 4 Part 1:", res)
 	res = partTwo(string(input))
-	fmt.Println("Part 2:", res)
+	fmt.Println("Day 4 Part 2:", res)
 }
 
 func partOne(input string) int {

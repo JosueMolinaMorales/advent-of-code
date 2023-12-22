@@ -39,8 +39,8 @@ func RunDayThirteen() {
 		panic("Failed to read input for day 13")
 	}
 
-	fmt.Println("Part 1", partOne(string(input)))
-	fmt.Println("Part 2", partTwo(string(input)))
+	fmt.Println("Day 13 Part 1", partOne(string(input)))
+	fmt.Println("Day 13 Part 2", partTwo(string(input)))
 }
 
 func partOne(input string) int {

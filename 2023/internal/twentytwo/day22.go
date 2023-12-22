@@ -26,8 +26,8 @@ func RunDayTwentyTwo() {
 	if err != nil {
 		panic("Failed to read day 22 input")
 	}
-	fmt.Println("Part one:", partOne(string(input)))
-	fmt.Println("Part two:", partTwo(string(input)))
+	fmt.Println("Day 22 Part one:", partOne(string(input)))
+	fmt.Println("Day 22 Part two:", partTwo(string(input)))
 }
 
 type (

@@ -23,8 +23,8 @@ func RunDaySixteen() {
 	if err != nil {
 		panic("Failed to read day 16 input")
 	}
-	fmt.Println("Part 1:", partOne(string(input)))
-	fmt.Println("Part 2:", partTwo(string(input)))
+	fmt.Println("Day 16 Part 1:", partOne(string(input)))
+	fmt.Println("Day 16 Part 2:", partTwo(string(input)))
 }
 
 const (

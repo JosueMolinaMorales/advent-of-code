@@ -1,4 +1,4 @@
-package daysix
+package six
 
 import (
 	"fmt"
@@ -17,15 +17,15 @@ type TimeDistance struct {
 }
 
 func RunDaySix() {
-	input, err := os.ReadFile("./input/day6input.txt")
+	input, err := os.ReadFile("./input/day6.txt")
 	if err != nil {
 		panic("Failed to read file for day 6")
 	}
 
 	res := partOne(string(input))
-	fmt.Println("Part 1:", res)
+	fmt.Println("Day 6 Part 1:", res)
 	res = partTwo(string(input))
-	fmt.Println("Part 2:", res)
+	fmt.Println("Day 6 Part 2:", res)
 }
 
 func partOne(input string) int {

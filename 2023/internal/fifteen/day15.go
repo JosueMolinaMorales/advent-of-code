@@ -16,8 +16,8 @@ func RunDayFifteen() {
 	if err != nil {
 		panic("Failed to read day 15 file")
 	}
-	fmt.Println("Part one", partOne(string(input)))
-	fmt.Println("Part two", partTwo(string(input)))
+	fmt.Println("Day 15 Part 1:", partOne(string(input)))
+	fmt.Println("Day 15 Part 2:", partTwo(string(input)))
 }
 
 func partOne(input string) int {

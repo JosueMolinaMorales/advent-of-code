@@ -31,8 +31,8 @@ func RunDayNineteen() {
 	if err != nil {
 		panic("Failed to read day 19 input")
 	}
-	fmt.Println("Part 1", partOne(string(input)))
-	fmt.Println("Part 2", partTwo(string(input)))
+	fmt.Println("Day 19 Part 1", partOne(string(input)))
+	fmt.Println("Day 19 Part 2", partTwo(string(input)))
 }
 
 type Part = map[string]int

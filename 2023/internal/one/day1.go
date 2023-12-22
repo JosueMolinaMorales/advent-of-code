@@ -1,4 +1,4 @@
-package dayone
+package one
 
 import (
 	"fmt"
@@ -13,15 +13,15 @@ import (
 )
 
 func RunDayOne() {
-	input, err := os.ReadFile("./input/day1/input.txt")
+	input, err := os.ReadFile("./input/day1.txt")
 	if err != nil {
 		panic("Input file not found")
 	}
 
 	res := partOne(string(input))
-	fmt.Println("Total for part 1: ", res)
+	fmt.Println("Day 1 Part 1:", res)
 	res = partTwo(string(input))
-	fmt.Println("Total for part 2: ", res)
+	fmt.Println("Day 1 Part 2:", res)
 }
 
 func partOne(input string) int {

@@ -39,8 +39,8 @@ func RunDaySeventeen() {
 	if err != nil {
 		panic("Failed to read day 17 input file")
 	}
-	fmt.Println("Part 1", partOne(string(input)))
-	fmt.Println("Part 2", partTwo(string(input)))
+	fmt.Println("Day 17 Part 1", partOne(string(input)))
+	fmt.Println("Day 17 Part 2", partTwo(string(input)))
 }
 
 func parseInput(input string) [][]int {

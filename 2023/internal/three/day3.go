@@ -1,4 +1,4 @@
-package daythree
+package three
 
 import (
 	"fmt"
@@ -52,14 +52,14 @@ var adjPoints [][]int = [][]int{
 const GEAR rune = '*'
 
 func RunDayThree() {
-	input, err := os.ReadFile("./input/day3binput.txt")
+	input, err := os.ReadFile("./input/day3.txt")
 	if err != nil {
 		panic("Could not read day 3 file")
 	}
 	res := partOne(string(input))
-	fmt.Println("Part 1:", res)
+	fmt.Println("Day 3 Part 1:", res)
 	res = partTwo(string(input))
-	fmt.Println("Part 2:", res)
+	fmt.Println("Day 3 Part 2:", res)
 }
 
 func partOne(input string) int {
