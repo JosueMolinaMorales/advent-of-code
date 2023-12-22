@@ -4,8 +4,11 @@ import (
 	"container/heap"
 	"fmt"
 	"math"
+	"os"
 	"strconv"
 	"strings"
+
+	"github.com/josuemolinamorales/aoc-2023/utils"
 )
 
 const testInput = `2413432311323
@@ -32,13 +35,12 @@ const test = `111
 551`
 
 func RunDaySeventeen() {
-	// input, err := os.ReadFile("./input/day17.txt")
-	// if err != nil {
-	// 	panic("Failed to read day 17 input file")
-	// }
-	// fmt.Println("Part 1", partOne(string(input)))
-	// fmt.Println("Part 2", partTwo(string(input)))
-	fmt.Println("Part 1", partOne(testInput))
+	input, err := os.ReadFile("./input/day17.txt")
+	if err != nil {
+		panic("Failed to read day 17 input file")
+	}
+	fmt.Println("Part 1", partOne(string(input)))
+	fmt.Println("Part 2", partTwo(string(input)))
 }
 
 func parseInput(input string) [][]int {
@@ -86,31 +88,6 @@ type Item struct {
 	direction Point
 }
 
-type PriorityQueue []*Item
-
-func (pq PriorityQueue) Len() int { return len(pq) }
-
-func (pq PriorityQueue) Less(i, j int) bool {
-	return pq[i].heatLoss < pq[j].heatLoss
-}
-
-func (pq PriorityQueue) Swap(i, j int) {
-	pq[i], pq[j] = pq[j], pq[i]
-}
-
-func (pq *PriorityQueue) Push(x interface{}) {
-	item := x.(*Item)
-	*pq = append(*pq, item)
-}
-
-func (pq *PriorityQueue) Pop() interface{} {
-	old := *pq
-	n := len(old)
-	item := old[n-1]
-	*pq = old[0 : n-1]
-	return item
-}
-
 func getMinHeatLoss(heatLossMap [][]int, blocksBeforeTurn, maxInDirection int) int {
 	// Initialize a map to store cumulative heat losses for each position and direction.
 	dist := make(map[Point]map[Point]int)
@@ -132,13 +109,15 @@ func getMinHeatLoss(heatLossMap [][]int, blocksBeforeTurn, maxInDirection int) i
 	dist[Point{0, 0}][LEFT] = 0
 
 	// Priority queue for Dijkstra's algorithm
-	pq := make(PriorityQueue, 0)
+	pq := utils.NewHeap(make([]interface{}, 0), func(a, b interface{}) bool {
+		return a.(*Item).heatLoss < b.(*Item).heatLoss
+	})
 	heap.Init(&pq)
 	heap.Push(&pq, &Item{0, Point{0, 0}, RIGHT})
 	heap.Push(&pq, &Item{0, Point{0, 0}, DOWN})
 
 	// Dijkstra's algorithm loop
-	for len(pq) > 0 {
+	for pq.Len() > 0 {
 		// Pop the item with the minimum heat loss from the priority queue
 		item := heap.Pop(&pq).(*Item)
 		heatLoss, position, direction := item.heatLoss, item.position, item.direction
