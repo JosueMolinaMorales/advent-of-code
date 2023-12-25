@@ -32,10 +32,8 @@ func RunDayTwentyFour() {
 	if err != nil {
 		panic("Failed to read day 24 input file")
 	}
-	// Too High: 34070
-	fmt.Println("Day 24 Part 1:", partOne(string(input), Limits{200000000000000, 400000000000000})) // Too low: 17035
-	// fmt.Println("Day 24 Part 1:", partOne(testInput, Limits{7, 27}))
-	// fmt.Println("Day 24 Part 2:", partTwo(testInput))
+	fmt.Println("Day 24 Part 1:", partOne(string(input), Limits{200000000000000, 400000000000000}))
+	// Part 2 done in python to use sympy
 }
 
 type Limits = [2]float64
