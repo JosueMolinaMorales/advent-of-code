@@ -1,9 +1,26 @@
 package utils
 
 import (
+	"fmt"
 	"math/big"
 	"strconv"
 )
+
+func ToFloat(s string) float64 {
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to convert %s to float", s))
+	}
+	return f
+}
+
+func ToInt(s string) int {
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to convert %s to int", s))
+	}
+	return i
+}
 
 // IsDigit checks if a string is a digit
 func IsDigit(s string) bool {
