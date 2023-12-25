@@ -38,6 +38,19 @@ type (
 	}
 )
 
+func (g Graph) Copy() Graph {
+	vertices := make(map[Vertex]struct{})
+	edges := make([]Edge, 0)
+	for v := range g.Vertices {
+		vertices[v] = struct{}{}
+	}
+	edges = append(edges, g.Edges...)
+	return Graph{
+		Vertices: vertices,
+		Edges:    edges,
+	}
+}
+
 func partOne(input string) int {
 	vertices := make(map[Vertex]struct{})
 	edges := make([]Edge, 0)
@@ -61,34 +74,30 @@ func partOne(input string) int {
 		Edges:    edges,
 	}
 
-	// Use Karger's algorithm to find the minimum cut
-	// https://en.wikipedia.org/wiki/Karger%27s_algorithm
 	return minCut(graph)
 }
 
+// Use Karger's algorithm to find the minimum cut
+// https://en.wikipedia.org/wiki/Karger%27s_algorithm
 func minCut(graph Graph) int {
+	i := 0
 	for {
+		i += 1
+		if i > 1_000_000 {
+			panic("Too many iterations")
+		}
 		// Copy the graph
-		verticesCopy := make(map[Vertex]struct{})
-		edgesCopy := make([]Edge, 0)
-		for v := range graph.Vertices {
-			verticesCopy[v] = struct{}{}
-		}
-		edgesCopy = append(edgesCopy, graph.Edges...)
-		graphCopy := Graph{
-			Vertices: verticesCopy,
-			Edges:    edgesCopy,
-		}
+		graphCopy := graph.Copy()
 		for len(graphCopy.Vertices) > 2 {
-			u := ""
-			v := ""
 			// Pick a random edge
 			idx := rand.Intn(len(graphCopy.Edges))
-			u = graphCopy.Edges[idx][0]
-			v = graphCopy.Edges[idx][1]
+			u := graphCopy.Edges[idx][0]
+			v := graphCopy.Edges[idx][1]
+			// Merge the vertices
 			merge(&graphCopy, u, v)
 		}
 
+		// If the graph has 3 edges, we found the 3 cuts we need
 		if len(graphCopy.Edges)/2 == 3 {
 			graph = graphCopy
 			break
