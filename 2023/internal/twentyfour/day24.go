@@ -3,6 +3,7 @@ package twentyfour
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/josuemolinamorales/aoc-2023/utils"
@@ -33,7 +34,7 @@ func RunDayTwentyFour() {
 		panic("Failed to read day 24 input file")
 	}
 	fmt.Println("Day 24 Part 1:", partOne(string(input), Limits{200000000000000, 400000000000000}))
-	// Part 2 done in python to use sympy
+	fmt.Println("Day 24 Part 2:", partTwo(string(input)))
 }
 
 type Limits = [2]float64
@@ -54,6 +55,90 @@ func parse(input string) []Hailstone {
 		})
 	}
 	return hails
+}
+
+func getRockVelocity(velocities map[int][]int) int {
+	possibleV := make([]int, 0)
+	for x := -1000; x <= 1000; x++ {
+		possibleV = append(possibleV, x)
+	}
+
+	for vel, values := range velocities {
+		if len(values) < 2 {
+			continue
+		}
+
+		npV := make([]int, 0)
+		for _, poss := range possibleV {
+			// Add a check to ensure that the denominator is not zero
+			if poss-vel != 0 && (values[0]-values[1])%(poss-vel) == 0 {
+				npV = append(npV, poss)
+			}
+		}
+
+		possibleV = npV
+	}
+
+	return possibleV[0]
+}
+
+func partTwo(input string) int {
+	// https://github.com/ayoubzulfiqar/advent-of-code/blob/main/Go/Day24/part_2.go
+	pvx := make([]int, 2001)
+	for x := -1000; x <= 1000; x++ {
+		pvx[x+1000] = x
+	}
+
+	velX := make(map[int][]int)
+	velY := make(map[int][]int)
+	velZ := make(map[int][]int)
+
+	hails := parse(input)
+	for _, h := range hails {
+		velX[int(h.vx)] = append(velX[int(h.vx)], int(h.x))
+		velY[int(h.vy)] = append(velY[int(h.vy)], int(h.y))
+		velZ[int(h.vz)] = append(velZ[int(h.vz)], int(h.z))
+	}
+
+	rvx := getRockVelocity(velX)
+	rvy := getRockVelocity(velY)
+	rvz := getRockVelocity(velZ)
+
+	results := make(map[int]int, 0)
+
+	for i, p1 := range hails {
+		for _, p2 := range hails[:i] {
+
+			ma := (p1.vy - float64(rvy)) / (p1.vx - float64(rvx))
+			mb := (p2.vy - float64(rvy)) / (p2.vx - float64(rvx))
+
+			ca := p1.y - ma*p1.x
+			cb := p2.y - mb*p2.x
+
+			rpx := (cb - ca) / (ma - mb)
+			rpy := ma*float64(rpx) + ca
+
+			time := (rpx - p1.x) / (p1.vx - float64(rvx))
+			rpz := p1.z + (p1.vz-float64(rvz))*time
+
+			result := int(rpx) + int(rpy) + int(rpz)
+			if _, ok := results[result]; !ok {
+				results[result] = 1
+			} else {
+				results[result] += 1
+			}
+		}
+	}
+
+	var keys []int
+	for k := range results {
+		keys = append(keys, k)
+	}
+
+	sort.Slice(keys, func(i, j int) bool {
+		return results[keys[i]] > results[keys[j]]
+	})
+	return keys[0]
 }
 
 func partOne(input string, limits Limits) int {
