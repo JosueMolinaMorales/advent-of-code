@@ -1,12 +1,4 @@
 pub mod day_1;
-pub mod day_2;
-pub mod day_3;
-pub mod day_4;
-pub mod day_5;
-pub mod day_6;
-pub mod day_7;
-pub mod day_8;
-pub mod day_9;
 pub mod day_10;
 pub mod day_11;
 pub mod day_12;
@@ -15,9 +7,20 @@ pub mod day_14;
 pub mod day_15;
 pub mod day_16;
 pub mod day_17;
-
+pub mod day_18;
+pub mod day_19;
+pub mod day_2;
 pub mod day_20;
 pub mod day_21;
+pub mod day_22;
+pub mod day_23;
+pub mod day_3;
+pub mod day_4;
+pub mod day_5;
+pub mod day_6;
+pub mod day_7;
+pub mod day_8;
+pub mod day_9;
 
 fn main() {
     // day_1::solve_day_one();
@@ -36,7 +39,11 @@ fn main() {
     // day_14::solve_day_14();
     // day_15::solve_day_15();
     // day_16::solve_day_16()
-    day_17::solve_day_17();
+    // day_17::solve_day_17();
+    // day_18::solve_day_18();
+    // day_19::solve_day_19();
     // day_20::solve_day_20();
     // day_21::solve_day_21();
+    // day_22::solve_day_22();
+    day_23::solve_day_23();
 }
