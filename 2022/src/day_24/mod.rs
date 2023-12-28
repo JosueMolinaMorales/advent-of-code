@@ -1,12 +1,13 @@
 use std::{
-    cmp::Reverse,
-    collections::{self, BinaryHeap, HashMap, HashSet},
+    collections::{BinaryHeap, HashMap, HashSet},
+    iter,
 };
 
+mod help;
 pub fn solve_day_24() {
-    let input = include_str!("test_input.txt");
-    println!("Day 24 Part one: {}", part_one(input));
-    // println!("Day 24 Part two: {}", part_two(input));
+    let input = include_str!("input.txt");
+    println!("Day 24 Part one: {}", help::part_1(input));
+    println!("Day 24 Part two: {}", help::part_2(input));
 }
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone, Copy)]
@@ -20,10 +21,10 @@ enum Move {
 impl Move {
     fn to_point(&self) -> Point {
         match self {
-            Move::North => (0, -1),
-            Move::South => (0, 1),
-            Move::East => (1, 0),
-            Move::West => (-1, 0),
+            Move::North => Point { row: -1, col: 0 },
+            Move::South => Point { row: 1, col: 0 },
+            Move::East => Point { row: 0, col: 1 },
+            Move::West => Point { row: 0, col: -1 },
         }
     }
 }
@@ -33,35 +34,21 @@ const DIRECTIONS: [Move; 4] = [Move::North, Move::South, Move::East, Move::West]
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
 struct Blizzard {
     start_position: Point,
-    position: Point,
     direction: Move,
 }
 
-impl Blizzard {
-    fn position_at_time(&self, time: i32, grid: &Vec<Vec<char>>) -> Point {
-        let mut position = self.start_position;
-        match self.direction {
-            Move::North => {
-                position.0 = (self.start_position.0 - time) % grid.len() as i32;
-            }
-            Move::South => {
-                position.0 = (self.start_position.0 + time) % grid.len() as i32;
-            }
-            Move::East => {
-                position.1 = (self.start_position.1 + time) % grid[0].len() as i32;
-            }
-            Move::West => {
-                position.1 = (self.start_position.1 - time) % grid[0].len() as i32;
-            }
-        }
-        position
-    }
+#[derive(Debug, Hash, Eq, PartialEq, Clone, Copy, PartialOrd, Ord)]
+struct Point {
+    row: i32,
+    col: i32,
 }
 
-type Point = (i32, i32);
+#[derive(Debug)]
 struct Map {
-    grid: Vec<Vec<char>>,
+    walls: HashSet<Point>,
     blizzards: HashSet<Blizzard>,
+    row_len: i32,
+    col_len: i32,
     start: Point,
     end: Point,
 }
@@ -71,51 +58,42 @@ impl Map {
         let mut neighbors = Vec::new();
         for direction in DIRECTIONS.iter() {
             let new_point = (
-                point.0 + direction.to_point().0,
-                point.1 + direction.to_point().1,
+                point.row + direction.to_point().row,
+                point.col + direction.to_point().col,
             );
             // Bound Check
             if new_point.0 < 0
-                || new_point.0 >= self.grid.len() as i32
+                || new_point.0 >= self.row_len
                 || new_point.1 < 0
-                || new_point.1 >= self.grid[0].len() as i32
+                || new_point.1 >= self.col_len
             {
                 continue;
             }
 
-            neighbors.push(new_point);
+            neighbors.push(Point {
+                row: new_point.0,
+                col: new_point.1,
+            });
         }
         neighbors
     }
 
     fn is_wall(&self, point: Point) -> bool {
-        self.grid[point.0 as usize][point.1 as usize] == '#'
-    }
-
-    fn is_blizzard_at_point_at_time(&self, point: Point, time: i32) -> bool {
-        // We can find the blizzard's point at a time t by doing the following:
-        // 1. Find the blizzard's starting point
-        // 2. Find the blizzard's direction
-        // 3. Find the blizzard's position at time t
-
-        for blizzard in self.blizzards.iter() {
-            let blizzard_position = blizzard.position_at_time(time, &self.grid);
-            if blizzard_position == point {
-                return true;
-            }
-        }
-
-        false
+        self.walls.contains(&point)
     }
 }
 
 fn part_one(input: &str) -> i32 {
     let map = parse(input);
-
-    0
+    let lcm = lcm(map.row_len as usize - 2, map.col_len as usize - 2);
+    println!("lcm: {}", lcm);
+    let bliz_maps = bliz_maps(&map, map.row_len, map.col_len, lcm);
+    // println!("bliz_maps: {:#?}", bliz_maps);
+    let min_cost = dijkstras(&map, lcm, bliz_maps);
+    min_cost
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Hash, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Hash, Clone, Debug)]
 struct State {
     position: Point,
     cost: i32,
@@ -123,106 +101,202 @@ struct State {
 
 impl Ord for State {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.cost.cmp(&other.cost)
+        other.cost.cmp(&self.cost)
     }
 }
 
-fn dijkstras(map: &Map) {
+fn dijkstras(map: &Map, lcm: usize, bliz_maps: HashMap<i32, HashSet<Point>>) -> i32 {
     let mut heap = BinaryHeap::new();
-    heap.push(Reverse(State {
+    heap.push(State {
         position: map.start,
         cost: 0,
-    }));
+    });
     let mut visited = HashSet::new();
-    while !heap.is_empty() {
-        let curr = heap.pop().unwrap().0;
-
-        // If already visited this cell
-        if visited.contains(&curr) {
-            continue;
+    visited.insert((map.start, 0));
+    while let Some(state) = heap.pop() {
+        if state.position == map.end {
+            return state.cost;
         }
 
-        visited.insert(curr.clone());
-        dist.entry(curr.clone()).and_modify(|n| *n = *n + 1);
+        // Each step is a cost of 1
+        let new_cost = state.cost + 1;
+        if new_cost % 10 == 0 {
+            println!("new_cost: {}", new_cost);
+        }
+        let blizzards = &bliz_maps[&((new_cost as usize % lcm) as i32)];
+        let neighbors = map.neighbors(state.position);
 
-        let neighbors = map
-            .neighbors(curr.position)
+        let neighbors = neighbors
             .iter()
-            .filter(|n| !map.is_wall(**n))
-            .filter(|n| !map.is_blizzard_at_point_at_time(**n, curr.cost))
-            .map(|n| *n)
-            .collect::<Vec<(i32, i32)>>();
+            .chain(iter::once(&state.position))
+            .filter(|point| !map.is_wall(**point))
+            .filter(|point| !blizzards.contains(point))
+            .collect::<Vec<_>>();
 
-        if neighbors.len() == 0 {
-            // Cannot move, stay
-        }
-
-        for neighbor in neighbors {
-            dist.entry(State {
-                position: neighbor,
-                cost: curr.cost,
-            })
-            .and_modify(|cost| {
-                if (*cost + 1) < curr.cost {
-                    *cost = *cost + 1
-                }
-            })
-            .or_insert(curr.cost + 1);
+        for new_pos in neighbors {
+            if visited.insert((*new_pos, new_cost)) {
+                heap.push(State {
+                    position: *new_pos,
+                    cost: new_cost,
+                });
+            }
         }
     }
+
+    0
+}
+
+fn bliz_maps(map: &Map, rows: i32, cols: i32, max_time: usize) -> HashMap<i32, HashSet<Point>> {
+    // key: turn, val: set of a bliz locations
+    let mut cache = HashMap::new();
+
+    let mut blizzards: Vec<(Point, Move)> = map
+        .blizzards
+        .iter()
+        .map(|blizzard| (blizzard.start_position, blizzard.direction))
+        .collect();
+
+    let coords = blizzards.iter().map(|(coord, _)| *coord).collect();
+    cache.insert(0, coords);
+
+    // precompute every blizzard coord at every time before the coords repeat
+    for time in 1..max_time {
+        for (coord, dir) in blizzards.iter_mut() {
+            let d = dir.to_point();
+            *coord = Point {
+                row: coord.row + d.row,
+                col: coord.col + d.col,
+            };
+            // if next coord went to an edge, wrap
+            match dir {
+                Move::West => {
+                    if coord.col == 0 {
+                        coord.col = cols - 2;
+                    }
+                }
+                Move::East => {
+                    if coord.col == cols - 1 {
+                        coord.col = 1;
+                    }
+                }
+                Move::North => {
+                    if coord.row == 0 {
+                        coord.row = rows - 2;
+                    }
+                }
+                Move::South => {
+                    if coord.row == rows - 1 {
+                        coord.row = 1;
+                    }
+                }
+            }
+        }
+        let coords = blizzards.iter().map(|(coord, _)| *coord).collect();
+        cache.insert(time as i32, coords);
+    }
+
+    cache
 }
 
 fn parse(input: &str) -> Map {
-    let mut start = (0, 0);
-    let mut end = (0, 0);
-    let grid = input
-        .lines()
-        .map(|line| line.chars().collect::<Vec<char>>())
-        .collect::<Vec<Vec<char>>>();
-
-    start.1 = grid.get(0).unwrap().iter().position(|c| *c == '.').unwrap() as i32;
-    end.1 = grid
-        .get(grid.len() - 1)
-        .unwrap()
-        .iter()
-        .position(|c| *c == '.')
-        .unwrap() as i32;
-
-    // Find all blizzards
+    let mut start = Point { row: 0, col: 0 };
+    let mut end = Point { row: 0, col: 0 };
+    let mut walls = HashSet::new();
     let mut blizzards = HashSet::new();
-    for (i, line) in grid.iter().enumerate() {
-        for (j, c) in line.iter().enumerate() {
-            let mut blizzard = Blizzard {
-                start_position: (i as i32, j as i32),
-                position: (i as i32, j as i32),
-                direction: Move::North,
-            };
+
+    for (row, line) in input.lines().enumerate() {
+        for (col, c) in line.chars().enumerate() {
+            if row == 0 && c == '.' {
+                start = Point {
+                    row: row as i32,
+                    col: col as i32,
+                };
+            }
+            if row == input.lines().count() - 1 && c == '.' {
+                end = Point {
+                    row: row as i32,
+                    col: col as i32,
+                };
+            }
             match c {
+                '#' => {
+                    walls.insert(Point {
+                        row: row as i32,
+                        col: col as i32,
+                    });
+                }
                 '>' => {
-                    blizzard.direction = Move::East;
-                    blizzards.insert(blizzard);
+                    blizzards.insert(Blizzard {
+                        start_position: Point {
+                            row: row as i32,
+                            col: col as i32,
+                        },
+                        direction: Move::East,
+                    });
                 }
                 '<' => {
-                    blizzard.direction = Move::West;
-                    blizzards.insert(blizzard);
+                    blizzards.insert(Blizzard {
+                        start_position: Point {
+                            row: row as i32,
+                            col: col as i32,
+                        },
+                        direction: Move::West,
+                    });
                 }
                 '^' => {
-                    blizzard.direction = Move::North;
-                    blizzards.insert(blizzard);
+                    blizzards.insert(Blizzard {
+                        start_position: Point {
+                            row: row as i32,
+                            col: col as i32,
+                        },
+                        direction: Move::North,
+                    });
                 }
                 'v' => {
-                    blizzard.direction = Move::South;
-                    blizzards.insert(blizzard);
+                    blizzards.insert(Blizzard {
+                        start_position: Point {
+                            row: row as i32,
+                            col: col as i32,
+                        },
+                        direction: Move::South,
+                    });
                 }
                 _ => {}
             }
         }
     }
 
+    let row_len = input.lines().count() as i32;
+    let col_len = input.lines().next().unwrap().chars().count() as i32;
+
     Map {
-        grid,
+        walls,
         blizzards,
+        row_len,
+        col_len,
         start,
         end,
+    }
+}
+
+fn lcm(first: usize, second: usize) -> usize {
+    first * second / gcd(first, second)
+}
+
+fn gcd(first: usize, second: usize) -> usize {
+    let mut max = first;
+    let mut min = second;
+    if min > max {
+        std::mem::swap(&mut max, &mut min);
+    }
+
+    loop {
+        let res = max % min;
+        if res == 0 {
+            return min;
+        }
+
+        max = min;
+        min = res;
     }
 }
