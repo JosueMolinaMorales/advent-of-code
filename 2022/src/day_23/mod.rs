@@ -18,9 +18,6 @@ enum Move {
 struct Elf(i32, i32);
 
 impl Elf {
-    // If no other Elves are in one of those eight positions, the Elf does not do anything during this round.
-    // Otherwise, the Elf looks in each of four directions in the following order and proposes moving one step
-    // in the first valid direction:
     fn first_half_move(
         &self,
         current_move: Move,
@@ -68,21 +65,6 @@ impl Elf {
 
         None
     }
-
-    fn second_half_move(&self, other_proposed: &HashMap<Elf, (i32, i32)>) -> bool {
-        let proposed_move = other_proposed.get(self).unwrap();
-
-        // If there are no elves in the same spot, move
-        let mut can_move = true;
-        for (elf, pm) in other_proposed {
-            if elf != self && pm == proposed_move {
-                can_move = false;
-                break;
-            }
-        }
-
-        return can_move;
-    }
 }
 
 const NORTH: (i32, i32) = (-1, 0);
@@ -111,12 +93,12 @@ fn part_one(input: &str) -> i32 {
 
     let grid = build_grid(&elves);
 
-    for row in grid.iter() {
-        for c in row.iter() {
-            print!("{}", c);
-        }
-        println!();
-    }
+    // for row in grid.iter() {
+    //     for c in row.iter() {
+    //         print!("{}", c);
+    //     }
+    //     println!();
+    // }
 
     let mut empty = 0;
     for row in grid.iter() {
@@ -151,25 +133,28 @@ fn part_two(input: &str) -> i32 {
     i as i32
 }
 
-fn move_elves(elves: &mut HashSet<Elf>, proposed_moves: &HashMap<Elf, (i32, i32)>) {
+fn move_elves(elves: &mut HashSet<Elf>, proposed_moves: &HashMap<(i32, i32), Vec<Elf>>) {
     for (elf, pm) in proposed_moves {
-        if elf.second_half_move(proposed_moves) {
-            elves.remove(elf);
-            elves.insert(Elf(pm.0, pm.1));
+        if pm.len() == 1 {
+            elves.remove(&pm[0]);
+            elves.insert(Elf(elf.0, elf.1));
         }
     }
 }
 
-fn get_proposed_moves(curr_move: Move, elves: &HashSet<Elf>) -> HashMap<Elf, (i32, i32)> {
-    let mut proposed_moves = HashMap::new();
+fn get_proposed_moves(curr_move: Move, elves: &HashSet<Elf>) -> HashMap<(i32, i32), Vec<Elf>> {
+    let mut proposals: HashMap<(i32, i32), Vec<Elf>> = HashMap::new();
     for elf in elves.iter() {
         let proposed_move = elf.first_half_move(curr_move, &elves);
         if let Some(proposed_move) = proposed_move {
-            proposed_moves.insert(elf.clone(), (proposed_move.0, proposed_move.1));
+            proposals
+                .entry(proposed_move)
+                .or_insert(vec![])
+                .push(elf.clone());
         }
     }
 
-    proposed_moves
+    proposals
 }
 
 fn parse(input: &str) -> HashSet<Elf> {
