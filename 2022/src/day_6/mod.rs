@@ -1,17 +1,18 @@
-use std::{fs, str::Chars, collections::HashSet};
+use std::{collections::HashSet, fs, str::Chars};
 
 const INPUT_FILE: &str = "./inputs/day_6_input.txt";
 
 pub fn solve_day_six() {
     let binding = fs::read_to_string(INPUT_FILE).unwrap();
     let input_string = binding.chars();
-    part_one(input_string.clone());
-    part_two(input_string);
+    println!("Day 6 part one: {}", part_one(input_string.clone()));
+    println!("Day 6 part two: {}", part_two(input_string));
 }
 
-fn part_two(input_string: Chars) -> Option<usize> {
+fn part_two(input_string: Chars) -> i32 {
     let mut past_fourteen = Vec::new();
 
+    let mut res = 0;
     for (i, ch) in input_string.enumerate() {
         if past_fourteen.len() >= 14 {
             // Pop stack
@@ -23,17 +24,18 @@ fn part_two(input_string: Chars) -> Option<usize> {
         // Make the vector and set and assert its size is 4
         let past_fourteen_set: HashSet<char> = HashSet::from_iter(past_fourteen.iter().cloned());
         if past_fourteen_set.len() == 14 {
-            println!("Day 6 Part 2 Answer: {}", (i+1));
-            return Some(i+1)
+            res = i + 1;
+            break;
         }
     }
 
-    None
+    res as i32
 }
 
-fn part_one(input_string: Chars) -> Option<usize> {
+fn part_one(input_string: Chars) -> i32 {
     let mut past_four = Vec::new();
 
+    let mut res = 0;
     for (i, ch) in input_string.enumerate() {
         if past_four.len() >= 4 {
             // Pop stack
@@ -45,24 +47,22 @@ fn part_one(input_string: Chars) -> Option<usize> {
         // Make the vector and set and assert its size is 4
         let past_four_set: HashSet<char> = HashSet::from_iter(past_four.iter().cloned());
         if past_four_set.len() == 4 {
-            println!("Day 6 Part 1 Answer: {}", (i+1));
-            return Some(i+1)
+            res = i + 1;
+            break;
         }
     }
 
-    None
+    res as i32
 }
 
 #[test]
 fn test_part_one() {
     let res = part_one("mjqjpqmgbljsphdztnvjfqwrcgsmlb".chars());
-    assert!(res.is_some());
-    assert_eq!(res.unwrap(), 7);
+    assert_eq!(res, 7);
 }
 
 #[test]
 fn test_part_two() {
     let res = part_two("mjqjpqmgbljsphdztnvjfqwrcgsmlb".chars());
-    assert!(res.is_some());
-    assert_eq!(res.unwrap(), 19);
+    assert_eq!(res, 19);
 }

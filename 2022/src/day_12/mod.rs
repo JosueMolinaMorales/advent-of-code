@@ -5,7 +5,7 @@ struct Point {
     character: String,
     position: (usize, usize),
     parent: Option<(usize, usize)>,
-    explored: bool
+    explored: bool,
 }
 
 const INPUT: &str = include_str!("day_12_input.txt");
@@ -19,7 +19,12 @@ fn parse_input() -> Vec<Vec<Point>> {
     for line in lines {
         let mut row: Vec<Point> = vec![];
         for char in line.chars() {
-            row.push(Point { character: char.to_string(), position: (column_count, row_count), parent: None, explored: false});
+            row.push(Point {
+                character: char.to_string(),
+                position: (column_count, row_count),
+                parent: None,
+                explored: false,
+            });
             column_count += 1;
         }
         grid.push(row);
@@ -31,12 +36,12 @@ fn parse_input() -> Vec<Vec<Point>> {
 
 fn find_item(grid: &Vec<Vec<Point>>, item: String) -> Vec<(usize, usize)> {
     let mut res = vec![];
-    for row in grid.iter(){
+    for row in grid.iter() {
         for column in row.iter() {
-            let col_char = if column.character == "S" && item != "S" { 
-                "a".to_string() 
-            } else if column.character == "E" && item != "E" { 
-                "z".to_string() 
+            let col_char = if column.character == "S" && item != "S" {
+                "a".to_string()
+            } else if column.character == "E" && item != "E" {
+                "z".to_string()
             } else {
                 column.character.clone()
             };
@@ -76,7 +81,7 @@ fn get_adjacent_items(grid: &Vec<Vec<Point>>, vertex: (usize, usize)) -> Vec<(us
             }
         }
     }
-    
+
     // Bottom
     if vertex.1 != 0 {
         if let Some(bottom_row) = grid.get(vertex.1 - 1) {
@@ -90,7 +95,11 @@ fn get_adjacent_items(grid: &Vec<Vec<Point>>, vertex: (usize, usize)) -> Vec<(us
     let mut adj_vec = vec![];
     for i in 0..res.len() {
         let adj_point = grid[res[i].1][res[i].0].clone();
-        let adj_point_char = if adj_point.character == "E" { "z".to_string() } else { adj_point.character };
+        let adj_point_char = if adj_point.character == "E" {
+            "z".to_string()
+        } else {
+            adj_point.character
+        };
         if vertex_point.character == "E" {
             if adj_point_char == "z".to_string() {
                 adj_vec.push(adj_point.position);
@@ -100,9 +109,8 @@ fn get_adjacent_items(grid: &Vec<Vec<Point>>, vertex: (usize, usize)) -> Vec<(us
                 adj_vec.push(adj_point.position);
             }
         } else {
-            if 
-                vertex_point.character.as_bytes()[0] + 1 == adj_point_char.as_bytes()[0] ||
-                vertex_point.character.as_bytes()[0] >= adj_point_char.as_bytes()[0]
+            if vertex_point.character.as_bytes()[0] + 1 == adj_point_char.as_bytes()[0]
+                || vertex_point.character.as_bytes()[0] >= adj_point_char.as_bytes()[0]
             {
                 adj_vec.push(adj_point.position);
             }
@@ -111,7 +119,7 @@ fn get_adjacent_items(grid: &Vec<Vec<Point>>, vertex: (usize, usize)) -> Vec<(us
     adj_vec
 }
 
-fn bfs_climbing(starting_point: String) {
+fn bfs_climbing(starting_point: String) -> i32 {
     let mut grid = parse_input();
 
     let start = find_item(&grid, starting_point);
@@ -127,7 +135,7 @@ fn bfs_climbing(starting_point: String) {
             if grid[v.1][v.0].character == "E" {
                 break;
             }
-    
+
             let adj = get_adjacent_items(&grid, v);
             for u in adj {
                 let adj_u = &grid[u.1][u.0];
@@ -142,29 +150,27 @@ fn bfs_climbing(starting_point: String) {
         let end = find_item(&grid, "E".to_string()).last().unwrap().clone();
         let mut count = 0;
         let mut current_point = grid[end.1][end.0].clone();
-    
+
         while let Some(parent) = current_point.parent {
             count += 1;
             current_point = grid[parent.1][parent.0].clone();
         }
-    
+
         if count != 0 {
             // println!("count: {}", count);
             count_vec.push(count);
         }
-
     }
 
     // get min count in vec
     count_vec.sort();
-    println!("Min: {}", count_vec[0])
+
+    count_vec[0] as i32
 }
 
 pub fn solve_day_twelve() {
     // Part 1
-    bfs_climbing("S".to_string());
+    println!("Day 12 part one: {}", bfs_climbing("S".to_string()));
     // Part 2
-    bfs_climbing("a".to_string());
-
-    
+    println!("Day 12 Part two: {}", bfs_climbing("a".to_string()));
 }

@@ -1,10 +1,12 @@
 use std::collections::HashSet;
 
-
 const INPUT: &str = include_str!("day_9_input.txt");
 
 enum Direction {
-    L, R, U, D
+    L,
+    R,
+    U,
+    D,
 }
 
 impl Direction {
@@ -14,14 +16,14 @@ impl Direction {
             "R" => Direction::R,
             "L" => Direction::L,
             "D" => Direction::D,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 }
 
-fn simulate_rope(num_knots: u32) {
+fn simulate_rope(num_knots: u32) -> usize {
     let mut head = (0, 0);
-    let mut intermediate_knots = vec![(0,0); (num_knots-1).try_into().unwrap()];
+    let mut intermediate_knots = vec![(0, 0); (num_knots - 1).try_into().unwrap()];
     let mut tail_prev_pos = HashSet::from([*intermediate_knots.last().unwrap()]);
 
     for line in INPUT.lines() {
@@ -46,18 +48,15 @@ fn simulate_rope(num_knots: u32) {
                 prev_knot = knot;
             }
 
-            
             // After move, add position to hash set
             tail_prev_pos.insert(*intermediate_knots.last().unwrap());
         }
-        
-
     }
-    println!("Previous tail count: {}", tail_prev_pos.len());
+    tail_prev_pos.len()
 }
 
 /* Assumption: Head will start at point (0, 0) */
 pub fn solve_day_nine() {
-    simulate_rope(2);
-    simulate_rope(10);
+    println!("Day 9 part one: {}", simulate_rope(2));
+    println!("Day 9 part two: {}", simulate_rope(10));
 }
