@@ -1,18 +1,4 @@
-use std::collections::{HashMap, HashSet};
-
-const TEST_INPUT: &str = r#"2,2,2
-1,2,2
-3,2,2
-2,1,2
-2,3,2
-2,2,1
-2,2,3
-2,2,4
-2,2,6
-1,2,5
-3,2,5
-2,1,5
-2,3,5"#;
+use std::collections::HashSet;
 
 #[derive(PartialEq, Eq, Debug, Hash, Clone, Copy, Default)]
 struct Coord {
@@ -62,8 +48,8 @@ enum Dimension {
 const INPUT: &str = include_str!("./input.txt");
 
 pub fn solve_day_18() {
-    println!("Part 1: {}", part_one(INPUT));
-    println!("Part 2: {}", part_two(INPUT))
+    println!("Day 18 Part one: {}", part_one(INPUT));
+    println!("Day 18 Part two: {}", part_two(INPUT))
 }
 
 fn parse_input(input: &str) -> HashSet<Coord> {

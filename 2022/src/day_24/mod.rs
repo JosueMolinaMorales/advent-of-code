@@ -1,228 +1,300 @@
 use std::{
-    cmp::Reverse,
-    collections::{self, BinaryHeap, HashMap, HashSet},
+    collections::{BinaryHeap, HashMap, HashSet},
+    iter,
 };
 
 pub fn solve_day_24() {
-    let input = include_str!("test_input.txt");
+    let input = include_str!("input.txt");
     println!("Day 24 Part one: {}", part_one(input));
-    // println!("Day 24 Part two: {}", part_two(input));
+    println!("Day 24 Part two: {}", part_two(input));
 }
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone, Copy)]
-enum Move {
+enum Direction {
     North,
     South,
     East,
     West,
 }
 
-impl Move {
-    fn to_point(&self) -> Point {
-        match self {
-            Move::North => (0, -1),
-            Move::South => (0, 1),
-            Move::East => (1, 0),
-            Move::West => (-1, 0),
-        }
-    }
+enum Tile {
+    Wall,
+    Blizzard(Direction),
 }
-
-const DIRECTIONS: [Move; 4] = [Move::North, Move::South, Move::East, Move::West];
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
 struct Blizzard {
     start_position: Point,
-    position: Point,
-    direction: Move,
+    direction: Direction,
 }
 
-impl Blizzard {
-    fn position_at_time(&self, time: i32, grid: &Vec<Vec<char>>) -> Point {
-        let mut position = self.start_position;
-        match self.direction {
-            Move::North => {
-                position.0 = (self.start_position.0 - time) % grid.len() as i32;
-            }
-            Move::South => {
-                position.0 = (self.start_position.0 + time) % grid.len() as i32;
-            }
-            Move::East => {
-                position.1 = (self.start_position.1 + time) % grid[0].len() as i32;
-            }
-            Move::West => {
-                position.1 = (self.start_position.1 - time) % grid[0].len() as i32;
-            }
-        }
-        position
-    }
+#[derive(Debug, Hash, Eq, PartialEq, Clone, Copy, PartialOrd, Ord)]
+struct Point {
+    row: usize,
+    col: usize,
 }
 
-type Point = (i32, i32);
-struct Map {
-    grid: Vec<Vec<char>>,
-    blizzards: HashSet<Blizzard>,
-    start: Point,
-    end: Point,
-}
-
-impl Map {
-    fn neighbors(&self, point: Point) -> Vec<Point> {
+impl Point {
+    fn neighbors(&self, rows: usize, cols: usize) -> Vec<Point> {
         let mut neighbors = Vec::new();
-        for direction in DIRECTIONS.iter() {
-            let new_point = (
-                point.0 + direction.to_point().0,
-                point.1 + direction.to_point().1,
-            );
-            // Bound Check
-            if new_point.0 < 0
-                || new_point.0 >= self.grid.len() as i32
-                || new_point.1 < 0
-                || new_point.1 >= self.grid[0].len() as i32
-            {
-                continue;
-            }
-
-            neighbors.push(new_point);
+        if self.row > 0 {
+            neighbors.push(self.add_dir(Direction::North));
+        }
+        if self.row < rows - 1 {
+            neighbors.push(self.add_dir(Direction::South));
+        }
+        if self.col > 0 {
+            neighbors.push(self.add_dir(Direction::West));
+        }
+        if self.col < cols - 1 {
+            neighbors.push(self.add_dir(Direction::East));
         }
         neighbors
     }
 
-    fn is_wall(&self, point: Point) -> bool {
-        self.grid[point.0 as usize][point.1 as usize] == '#'
-    }
-
-    fn is_blizzard_at_point_at_time(&self, point: Point, time: i32) -> bool {
-        // We can find the blizzard's point at a time t by doing the following:
-        // 1. Find the blizzard's starting point
-        // 2. Find the blizzard's direction
-        // 3. Find the blizzard's position at time t
-
-        for blizzard in self.blizzards.iter() {
-            let blizzard_position = blizzard.position_at_time(time, &self.grid);
-            if blizzard_position == point {
-                return true;
-            }
+    fn add_dir(&self, dir: Direction) -> Point {
+        match dir {
+            Direction::North => Point {
+                row: self.row - 1,
+                col: self.col,
+            },
+            Direction::South => Point {
+                row: self.row + 1,
+                col: self.col,
+            },
+            Direction::East => Point {
+                row: self.row,
+                col: self.col + 1,
+            },
+            Direction::West => Point {
+                row: self.row,
+                col: self.col - 1,
+            },
         }
-
-        false
     }
 }
 
-fn part_one(input: &str) -> i32 {
-    let map = parse(input);
-
-    0
+struct MapInfo {
+    rows: usize,
+    cols: usize,
+    walls: HashSet<Point>,
+    repeats_at: usize,
+    blizzard_maps: HashMap<usize, HashSet<Point>>,
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Hash, Clone)]
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
 struct State {
     position: Point,
-    cost: i32,
+    cost: usize,
 }
 
 impl Ord for State {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.cost.cmp(&other.cost)
+        other.cost.cmp(&self.cost)
     }
 }
 
-fn dijkstras(map: &Map) {
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+fn part_one(input: &str) -> i32 {
+    let (map, walls, row, col) = parse(input);
+    let lcm = lcm(row - 2, col - 2);
+
+    let bliz_maps = bliz_maps(&map, row, col, lcm);
+
+    let map_info = MapInfo {
+        rows: row,
+        cols: col,
+        walls,
+        repeats_at: lcm,
+        blizzard_maps: bliz_maps,
+    };
+
+    let start = Point { row: 0, col: 1 };
+    let end = Point {
+        row: row - 1,
+        col: col - 2,
+    };
+
+    let min_cost = dijkstras(start, end, 0, &map_info);
+    min_cost as i32
+}
+
+fn part_two(input: &str) -> i32 {
+    let (map, walls, row, col) = parse(input);
+
+    let lcm = lcm(row - 2, col - 2);
+    let blizzard_maps = bliz_maps(&map, row, col, lcm);
+    let start = Point { row: 0, col: 1 };
+    let end = Point {
+        row: row - 1,
+        col: col - 2,
+    };
+
+    let map_info = MapInfo {
+        rows: row,
+        cols: col,
+        walls,
+        repeats_at: lcm,
+        blizzard_maps,
+    };
+
+    let there = dijkstras(start, end, 0, &map_info);
+    let back = dijkstras(end, start, there, &map_info);
+    dijkstras(start, end, back, &map_info) as i32
+}
+
+fn dijkstras(from: Point, to: Point, start_time: usize, map_info: &MapInfo) -> usize {
     let mut heap = BinaryHeap::new();
-    heap.push(Reverse(State {
-        position: map.start,
-        cost: 0,
-    }));
     let mut visited = HashSet::new();
-    while !heap.is_empty() {
-        let curr = heap.pop().unwrap().0;
 
-        // If already visited this cell
-        if visited.contains(&curr) {
-            continue;
+    heap.push(State {
+        position: from,
+        cost: start_time,
+    });
+    visited.insert((from, start_time));
+
+    while let Some(State { position, cost }) = heap.pop() {
+        if position == to {
+            return cost;
         }
 
-        visited.insert(curr.clone());
-        dist.entry(curr.clone()).and_modify(|n| *n = *n + 1);
+        // Each step is a cost of 1
+        let new_cost = cost + 1;
 
-        let neighbors = map
-            .neighbors(curr.position)
-            .iter()
-            .filter(|n| !map.is_wall(**n))
-            .filter(|n| !map.is_blizzard_at_point_at_time(**n, curr.cost))
-            .map(|n| *n)
-            .collect::<Vec<(i32, i32)>>();
+        let blizzards = &map_info.blizzard_maps[&(new_cost % map_info.repeats_at)];
 
-        if neighbors.len() == 0 {
-            // Cannot move, stay
-        }
+        let neighbors = position
+            .neighbors(map_info.rows, map_info.cols)
+            .into_iter()
+            .chain(iter::once(position))
+            .filter(|point| !map_info.walls.contains(point))
+            .filter(|point| !blizzards.contains(point));
 
-        for neighbor in neighbors {
-            dist.entry(State {
-                position: neighbor,
-                cost: curr.cost,
-            })
-            .and_modify(|cost| {
-                if (*cost + 1) < curr.cost {
-                    *cost = *cost + 1
-                }
-            })
-            .or_insert(curr.cost + 1);
-        }
-    }
-}
-
-fn parse(input: &str) -> Map {
-    let mut start = (0, 0);
-    let mut end = (0, 0);
-    let grid = input
-        .lines()
-        .map(|line| line.chars().collect::<Vec<char>>())
-        .collect::<Vec<Vec<char>>>();
-
-    start.1 = grid.get(0).unwrap().iter().position(|c| *c == '.').unwrap() as i32;
-    end.1 = grid
-        .get(grid.len() - 1)
-        .unwrap()
-        .iter()
-        .position(|c| *c == '.')
-        .unwrap() as i32;
-
-    // Find all blizzards
-    let mut blizzards = HashSet::new();
-    for (i, line) in grid.iter().enumerate() {
-        for (j, c) in line.iter().enumerate() {
-            let mut blizzard = Blizzard {
-                start_position: (i as i32, j as i32),
-                position: (i as i32, j as i32),
-                direction: Move::North,
-            };
-            match c {
-                '>' => {
-                    blizzard.direction = Move::East;
-                    blizzards.insert(blizzard);
-                }
-                '<' => {
-                    blizzard.direction = Move::West;
-                    blizzards.insert(blizzard);
-                }
-                '^' => {
-                    blizzard.direction = Move::North;
-                    blizzards.insert(blizzard);
-                }
-                'v' => {
-                    blizzard.direction = Move::South;
-                    blizzards.insert(blizzard);
-                }
-                _ => {}
+        for new_pos in neighbors {
+            if visited.insert((new_pos, new_cost)) {
+                heap.push(State {
+                    position: new_pos,
+                    cost: new_cost,
+                });
             }
         }
     }
 
-    Map {
-        grid,
-        blizzards,
-        start,
-        end,
+    0
+}
+
+fn bliz_maps(
+    map: &HashMap<Point, Tile>,
+    rows: usize,
+    cols: usize,
+    max_time: usize,
+) -> HashMap<usize, HashSet<Point>> {
+    // key: turn, val: set of a bliz locations
+    let mut cache = HashMap::new();
+
+    let mut blizzards: Vec<(Point, Direction)> = map
+        .iter()
+        .filter_map(|(pos, tile)| match tile {
+            Tile::Blizzard(dir) => Some((*pos, *dir)),
+            _ => None,
+        })
+        .collect();
+
+    let coords = blizzards.iter().map(|(coord, _)| *coord).collect();
+    cache.insert(0, coords);
+
+    // precompute every blizzard coord at every time before the coords repeat
+    for time in 1..max_time {
+        for (coord, dir) in blizzards.iter_mut() {
+            *coord = coord.add_dir(*dir);
+            // if next coord went to an edge, wrap
+            match dir {
+                Direction::West => {
+                    if coord.col == 0 {
+                        coord.col = cols - 2;
+                    }
+                }
+                Direction::East => {
+                    if coord.col == cols - 1 {
+                        coord.col = 1;
+                    }
+                }
+                Direction::North => {
+                    if coord.row == 0 {
+                        coord.row = rows - 2
+                    }
+                }
+                Direction::South => {
+                    if coord.row == rows - 1 {
+                        coord.row = 1;
+                    }
+                }
+            }
+        }
+        let coords = blizzards.iter().map(|(coord, _)| *coord).collect();
+        cache.insert(time, coords);
+    }
+
+    cache
+}
+
+fn parse(input: &str) -> (HashMap<Point, Tile>, HashSet<Point>, usize, usize) {
+    let mut map = HashMap::new();
+    for (row, line) in input.lines().enumerate() {
+        for (col, c) in line.chars().enumerate() {
+            if c == '.' {
+                continue;
+            }
+            let point = Point { row, col };
+            let tile = match c {
+                '#' => Tile::Wall,
+                '^' => Tile::Blizzard(Direction::North),
+                'v' => Tile::Blizzard(Direction::South),
+                '>' => Tile::Blizzard(Direction::East),
+                '<' => Tile::Blizzard(Direction::West),
+                _ => panic!("Invalid tile"),
+            };
+            map.insert(point, tile);
+        }
+    }
+
+    let row_len = input.lines().count();
+    let col_len = input.lines().next().unwrap().chars().count();
+
+    let walls = map
+        .iter()
+        .filter_map(|(pos, tile)| match tile {
+            Tile::Wall => Some(*pos),
+            _ => None,
+        })
+        .collect();
+
+    (map, walls, row_len, col_len)
+}
+
+fn lcm(first: usize, second: usize) -> usize {
+    first * second / gcd(first, second)
+}
+
+fn gcd(first: usize, second: usize) -> usize {
+    let mut max = first;
+    let mut min = second;
+    if min > max {
+        std::mem::swap(&mut max, &mut min);
+    }
+
+    loop {
+        let res = max % min;
+        if res == 0 {
+            return min;
+        }
+
+        max = min;
+        min = res;
     }
 }

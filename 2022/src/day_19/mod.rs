@@ -1,10 +1,9 @@
 use std::collections::VecDeque;
 
-const TEST_INPUT: &str = include_str!("test_input.txt");
 const INPUT: &str = include_str!("input.txt");
 pub fn solve_day_19() {
-    println!("Part one: {}", part_one(INPUT));
-    println!("Part two: {}", part_two(INPUT));
+    println!("Day 19 Part one: {}", part_one(INPUT));
+    println!("Day 19 Part two: {}", part_two(INPUT));
 }
 
 fn parse(input: &str) -> Vec<[[u16; 4]; 4]> {

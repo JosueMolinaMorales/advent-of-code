@@ -6,15 +6,27 @@ fn get_monkey(lines: &Vec<&str>) -> String {
     lines[0].split(" ").last().unwrap().replace(":", "")
 }
 
-fn play_catch(rounds: u32, is_worried: bool) {
+fn play_catch(rounds: u32, is_worried: bool) -> u128 {
     let mut monkeys: HashMap<String, Vec<u128>> = HashMap::new();
     let mut monkey_inspection_count: Vec<u128> = vec![];
     let mut modulo: u128 = 1;
     for monkey_attr in INPUT.split("\n\n") {
         let lines = monkey_attr.split("\n").collect::<Vec<&str>>();
         let monkey = get_monkey(&lines);
-        let starting_levels = lines[1].split(": ").last().unwrap().split(", ").map(|s| s.parse::<u128>().unwrap()).collect::<Vec<u128>>();
-        let divisible_by = lines[3].trim().split(" ").last().unwrap().parse::<u128>().unwrap();
+        let starting_levels = lines[1]
+            .split(": ")
+            .last()
+            .unwrap()
+            .split(", ")
+            .map(|s| s.parse::<u128>().unwrap())
+            .collect::<Vec<u128>>();
+        let divisible_by = lines[3]
+            .trim()
+            .split(" ")
+            .last()
+            .unwrap()
+            .parse::<u128>()
+            .unwrap();
         modulo *= divisible_by;
         monkey_inspection_count.push(0);
         monkeys.insert(monkey, starting_levels);
@@ -23,8 +35,22 @@ fn play_catch(rounds: u32, is_worried: bool) {
         for monkey_attr in INPUT.split("\n\n") {
             let lines = monkey_attr.split("\n").collect::<Vec<&str>>();
             let monkey = get_monkey(&lines);
-            let operation = lines[2].split(": ").last().unwrap().split(" = ").last().unwrap().split(" ").collect::<Vec<&str>>();
-            let divisible_by = lines[3].trim().split(" ").last().unwrap().parse::<u128>().unwrap();
+            let operation = lines[2]
+                .split(": ")
+                .last()
+                .unwrap()
+                .split(" = ")
+                .last()
+                .unwrap()
+                .split(" ")
+                .collect::<Vec<&str>>();
+            let divisible_by = lines[3]
+                .trim()
+                .split(" ")
+                .last()
+                .unwrap()
+                .parse::<u128>()
+                .unwrap();
             let if_true_monkey_to = lines[4].trim().split(" ").last().unwrap().to_string();
             let if_false_monkey_to = lines[5].trim().split(" ").last().unwrap().to_string();
             let mut worry_level = monkeys.get_mut(&monkey).unwrap();
@@ -39,11 +65,11 @@ fn play_catch(rounds: u32, is_worried: bool) {
                 match operation[1] {
                     "+" => {
                         worry_level[0] += operation[2].parse::<u128>().unwrap_or(worry_level[0]);
-                    },
+                    }
                     "*" => {
                         worry_level[0] *= operation[2].parse::<u128>().unwrap_or(worry_level[0]);
-                    },
-                    _ => unreachable!()
+                    }
+                    _ => unreachable!(),
                 }
                 // monkey gets bored, divide by 3
                 if is_worried {
@@ -68,11 +94,17 @@ fn play_catch(rounds: u32, is_worried: bool) {
         }
     }
     monkey_inspection_count.sort();
-    let res = monkey_inspection_count.iter().rev().take(2).map(|r| *r).collect::<Vec<u128>>();
-    println!("Inspection counts: {:?}",  res[0] * res[1]);
+    let res = monkey_inspection_count
+        .iter()
+        .rev()
+        .take(2)
+        .map(|r| *r)
+        .collect::<Vec<u128>>();
+
+    res[0] * res[1]
 }
 
 pub fn solve_day_eleven() {
-    play_catch(20, true);
-    play_catch(10000, false);
+    println!("Day 11 Part one: {}", play_catch(20, true));
+    println!("Day 12 Part two: {}", play_catch(10000, false));
 }

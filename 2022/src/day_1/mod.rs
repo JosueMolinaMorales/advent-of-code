@@ -13,45 +13,43 @@ fn read_file() -> Vec<String> {
 pub fn solve_day_one() {
     // Read file
     let cal_str_vec = read_file();
-    part_one(cal_str_vec.clone());
-    part_two(cal_str_vec)
+    println!("Day 1 part one: {}", part_one(cal_str_vec.clone()));
+    println!("Day 2 part two: {}", part_two(cal_str_vec));
 }
 
-fn part_one(cal_str_vec: Vec<String>) {
-        // At every empty index, take the sum of the previous values
-        let mut sum_vec = vec![];
-        let mut local_sum = 0;
-        cal_str_vec.iter().for_each(|cal| {
-            if cal.is_empty() {
-                sum_vec.push(local_sum);
-                local_sum = 0;
-            } else {
-                local_sum += cal.parse::<i32>().unwrap();
-            }
-        });
-        // Push the last local_sum
-        sum_vec.push(local_sum);
-    
-        println!("The max number of calories is: {} ", sum_vec.iter().max().unwrap())
-}
-
-fn part_two(cal_str_vec: Vec<String>) {
+fn part_one(cal_str_vec: Vec<String>) -> i32 {
+    // At every empty index, take the sum of the previous values
     let mut sum_vec = vec![];
-        let mut local_sum = 0;
-        cal_str_vec.iter().for_each(|cal| {
-            if cal.is_empty() {
-                sum_vec.push(local_sum);
-                local_sum = 0;
-            } else {
-                local_sum += cal.parse::<i32>().unwrap();
-            }
-        });
-        // Push the last local_sum
-        sum_vec.push(local_sum);
+    let mut local_sum = 0;
+    cal_str_vec.iter().for_each(|cal| {
+        if cal.is_empty() {
+            sum_vec.push(local_sum);
+            local_sum = 0;
+        } else {
+            local_sum += cal.parse::<i32>().unwrap();
+        }
+    });
+    // Push the last local_sum
+    sum_vec.push(local_sum);
 
-        sum_vec.sort();
+    *sum_vec.iter().max().unwrap()
+}
 
-        let top_3: i32 = sum_vec.iter().rev().take(3).sum();
-    
-        println!("The top three calories summed is: {} ", top_3)
+fn part_two(cal_str_vec: Vec<String>) -> i32 {
+    let mut sum_vec = vec![];
+    let mut local_sum = 0;
+    cal_str_vec.iter().for_each(|cal| {
+        if cal.is_empty() {
+            sum_vec.push(local_sum);
+            local_sum = 0;
+        } else {
+            local_sum += cal.parse::<i32>().unwrap();
+        }
+    });
+    // Push the last local_sum
+    sum_vec.push(local_sum);
+
+    sum_vec.sort();
+
+    sum_vec.iter().rev().take(3).sum()
 }

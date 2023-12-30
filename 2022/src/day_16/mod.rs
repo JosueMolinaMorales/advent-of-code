@@ -1,129 +1,288 @@
-use std::collections::{VecDeque, HashMap};
-
 // const TEST_INPUT: &str = include_str!("test_input.txt");
 const INPUT: &str = include_str!("input_day_16.txt");
+use std::{
+    cmp::Ordering,
+    collections::{BTreeSet, BinaryHeap, HashMap, HashSet, VecDeque},
+};
+
+use itertools::Itertools;
+
 #[derive(Debug, Clone)]
-struct Tunnel {
-    pub valve_name: String,
-    pub rate: i32,
-    pub adj_tunnels: Vec<String>,
-    pub is_opened: bool,
+struct Valve<'a> {
+    flow: u32,
+    neighbours: HashSet<&'a str>,
 }
 
-fn parse_input(input: &str) -> HashMap<String, Tunnel> {
-    input
-        .lines()
-        .map(|line| {
-            let line = line.replace("Valve ", "").replace("has flow rate=", "").replace("; tunnels lead to valves ", " ").replace("; tunnel leads to valve ", " ").replace(", ", ",");
-            let line = line.split(" ").collect::<Vec<&str>>();
-            let tunnel_id = line[0].clone();
-            ( tunnel_id.clone().to_string(), Tunnel {
-                valve_name: tunnel_id.clone().to_string(),
-                rate: line[1].clone().parse::<i32>().unwrap(),
-                adj_tunnels: line[2].clone().split(",").map(|s| s.to_string()).collect::<Vec<String>>(),
-                is_opened: false,
-            })
-        })
-        .collect::<HashMap<String, Tunnel>>()
+#[derive(PartialEq, Eq)]
+struct Node<'a> {
+    cost: u32,
+    curr: &'a str,
 }
 
-pub fn solve_day_16() {
-    let tunnels = parse_input(INPUT);
-
-    solve_part_one(&mut tunnels.clone(), "AA".to_string());
-    solve_part_two(&mut tunnels.clone());
-}
-
-fn solve_part_two(tunnels: &mut HashMap<String, Tunnel>) {
-    let mut fresh_tunnels = tunnels.clone();
-    for starting in fresh_tunnels.clone().keys() {
-        let (path, max_pressure_1) = bfs(&mut fresh_tunnels, starting.clone(), 0, 26);
-        path.split(" -> ").for_each(|id| {
-            fresh_tunnels.entry(id.to_string()).and_modify(|t| {
-                if t.rate != 0 {
-                    t.is_opened = true
-                }
-            });
-        });
-        println!("first time: {:?}", (path, max_pressure_1));
-    
-        let (path, max_pressure_2) = bfs(&mut fresh_tunnels, starting.clone(), 0, 26);
-        println!("second time: {:?}", (path, max_pressure_2));
-    
-        println!("Total: {}", max_pressure_1 + max_pressure_2);
-
-        fresh_tunnels = tunnels.clone();
+impl<'a> Ord for Node<'a> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        other.cost.cmp(&self.cost)
     }
 }
 
-fn solve_part_one(tunnels: &mut HashMap<String, Tunnel>, starting: String) {
-    println!("final res: {:?}", bfs(tunnels, starting, 0, 30));
+impl<'a> PartialOrd for Node<'a> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
+/// return lowest cost to move from a valve to an other valve
+fn min_cost(from: &str, to: &str, map: &HashMap<&str, Valve>) -> u32 {
+    // shortest path:
+    // Dijkstra's algorithm
+    // nodes in the priority queue are sorted so the lowest cost gets popped first
+    let mut pq = BinaryHeap::new();
+    // prevent backtracking by keeping track of valve rooms we already saw
+    let mut seen = HashSet::new();
 
-fn bfs(
-    tunnels: &mut HashMap<String, Tunnel>, 
-    starting: String, 
-    existing_calc: usize, 
-    time_remaining: usize
-) -> (String, usize) {
-    // Base case, run out of time
-    if time_remaining <= 0 {
-        return (starting, existing_calc)
-    }
-    // Set up for bfs
-    let mut queue: VecDeque<String> = VecDeque::new();
-    let mut explored: Vec<String> = vec![starting.clone()];
-    queue.push_back(tunnels.get(&starting).unwrap().valve_name.clone());
+    pq.push(Node {
+        cost: 0,
+        curr: from,
+    });
+    seen.insert(from);
 
-    let mut distance: HashMap<String, usize> = HashMap::new(); // Hashmap of all distances with respect to starting point
-    distance.insert(starting.to_string(), 0);
+    while let Some(Node { cost, curr }) = pq.pop() {
+        if curr == to {
+            return cost;
+        }
 
-    let mut calculations = Vec::new();
-    while !queue.is_empty() {
-        let v = queue.pop_front().unwrap();
-        let v_dist = distance.get(&v).unwrap().clone();
-
-        let adj = tunnels.get(&v).unwrap().adj_tunnels.clone();
-        for w in adj {
-            if !explored.contains(&w) {
-                // Get the distance
-                let d = distance.entry(w.clone()).and_modify(|d| *d = v_dist + 1).or_insert(v_dist+1);
-                let rate = tunnels.get(&w).unwrap().rate as isize;
-                // Calculate the Time * Rate
-                let calc = ((time_remaining as isize - *d as isize - 1) as isize) * rate;
-                let t = tunnels.get(&w).unwrap();
-                if calc > 0 && !t.is_opened {
-                    calculations.push((w.clone(), calc as usize , time_remaining-*d-1));
-                }
-                explored.push(w.clone());
-                queue.push_back(w);
+        for neighbour in map[curr].neighbours.iter() {
+            // only insert into the pq if we did not already see the neighbour valve
+            if seen.insert(neighbour) {
+                pq.push(Node {
+                    cost: cost + 1,
+                    curr: neighbour,
+                });
             }
         }
     }
-    calculations.sort_by(|a, b| a.1.cmp(&b.1));
-    if calculations.len() == 0 {
-        return (starting, existing_calc)
-    }
 
-    let res = calculations.iter().map(|d| {
-        let mut tunnels = tunnels.clone();
-        tunnels.entry(d.0.to_string()).and_modify(|t| t.is_opened = true);
-        bfs(&mut tunnels, d.0.clone(), d.1, d.2)
-    }).max_by(|x, y| x.1.cmp(&y.1)).unwrap();
-
-    (format!("{} -> {}", starting, res.0), res.1 + existing_calc)
-    
+    u32::MAX
 }
 
-/*
-    Algorithm idea:
-        Start at t = 30 and AA, visit all nodes in graph
-        while visiting node, if node.rate == 0, just decrease t
-        if node.rate > 0, new_t = decrease t by 2, then multiply new_t * rate
-        After visiting all nodes, pick the max node that maximizes Time * Rate
-        Set Node to open
-        Start at t = new_t
+/// map shortest distance from "AA" to any flowing valve
+/// map shortest distance from any flowing valve to an other
+fn min_distances<'a>(map: &'a HashMap<&str, Valve>) -> HashMap<(&'a str, &'a str), u32> {
+    map.iter()
+        // only keep flowing valves
+        .filter(|(_, valve)| valve.flow > 0)
+        // get the name of flowing valves
+        .map(|(&name, _)| name)
+        // iterate over every combination of 2 flowing valves
+        .tuple_combinations()
+        // record shortest distance between those 2
+        // (and the dist from "AA" to a flowing valve because we start there)
+        .fold(HashMap::new(), |mut acc, (name1, name2)| {
+            // from AA to name1
+            acc.entry(("AA", name1))
+                .or_insert_with(|| min_cost("AA", name1, map));
+            // from AA to name2
+            acc.entry(("AA", name2))
+                .or_insert_with(|| min_cost("AA", name2, map));
 
+            let dist = min_cost(name1, name2, map);
+            // from name1 to name2
+            acc.insert((name1, name2), dist);
+            // from name2 to name1
+            acc.insert((name2, name1), dist);
 
-*/
+            acc
+        })
+}
+
+fn wait_until_ending(
+    max_time: u32,
+    elapsed: u32,
+    relieved: u32,
+    opened: &BTreeSet<&str>,
+    map: &HashMap<&str, Valve>,
+) -> u32 {
+    let time_left = max_time - elapsed;
+    let relieved_per_min: u32 = opened.iter().map(|name| &map[name].flow).sum();
+    relieved + (relieved_per_min * time_left)
+}
+
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+struct State<'a> {
+    opened: BTreeSet<&'a str>,
+    curr: &'a str,
+    elapsed: u32,
+    relieved: u32,
+}
+
+fn parse<'a>(input: &'a str) -> HashMap<&'a str, Valve<'a>> {
+    let valves = input
+        .lines()
+        .map(|line| {
+            let (valve, neighbours) = line.split_once("; ").unwrap();
+            let valve = valve.strip_prefix("Valve ").unwrap();
+            let (name, flow) = valve.split_once(" has flow rate=").unwrap();
+            let flow = flow.parse().unwrap();
+            let neighbours = neighbours
+                .strip_prefix("tunnels lead to valves ")
+                .or_else(|| neighbours.strip_prefix("tunnel leads to valve "))
+                .unwrap();
+            let neighbours = neighbours.split_terminator(", ").collect();
+
+            (name, Valve { flow, neighbours })
+        })
+        .collect();
+
+    valves
+}
+
+fn part_1() -> u32 {
+    let valves = parse(INPUT);
+    let dist_map = min_distances(&valves); // key: (from, to), value: move_cost
+    let flowing: HashSet<_> = valves
+        .iter()
+        .filter(|(_, valve)| valve.flow > 0)
+        .map(|(&name, _)| name)
+        .collect();
+
+    let mut max_relieved = 0;
+    let mut q = VecDeque::new();
+    let mut seen = HashSet::new();
+
+    q.push_back(State {
+        curr: "AA",
+        opened: BTreeSet::new(),
+        elapsed: 0,
+        relieved: 0,
+    });
+    // current position doesn't matter for seen
+    seen.insert((BTreeSet::new(), 0, 0));
+
+    while let Some(State {
+        opened,
+        curr,
+        elapsed,
+        relieved,
+    }) = q.pop_front()
+    {
+        // if all flowing valves are opened, wait until the end
+        if opened.len() == flowing.len() || elapsed >= 30 {
+            let relieved_at_end = wait_until_ending(30, elapsed, relieved, &opened, &valves);
+            max_relieved = max_relieved.max(relieved_at_end);
+            continue;
+        }
+        // for every unopened valve, run simulation
+        let unopened = flowing.iter().filter(|name| !opened.contains(*name));
+
+        for dest in unopened {
+            // how long would moving to dest take? +1 to open the valve
+            let cost = dist_map[&(curr, *dest)] + 1;
+            let new_elapsed = elapsed + cost;
+            // if opening the dest valve would exceed the time limit, wait until the end
+            if new_elapsed >= 30 {
+                let relieved_at_end = wait_until_ending(30, elapsed, relieved, &opened, &valves);
+                max_relieved = max_relieved.max(relieved_at_end);
+                continue;
+            }
+
+            // relieve pressure of opened valves while we move to dest and open it
+            let relieved_per_min: u32 = opened.iter().map(|name| &valves[name].flow).sum();
+            let new_relieved = relieved + (relieved_per_min * cost);
+            // add opened valve to opened valves
+            let mut new_opened = opened.clone();
+            new_opened.insert(dest);
+
+            if seen.insert((new_opened.clone(), new_elapsed, new_relieved)) {
+                q.push_back(State {
+                    opened: new_opened,
+                    curr: dest,
+                    elapsed: new_elapsed,
+                    relieved: new_relieved,
+                });
+            }
+        }
+    }
+
+    max_relieved
+}
+
+fn part_2() -> u32 {
+    let valves = parse(INPUT);
+    let dist_map = min_distances(&valves); // key: (from, to), value: move_cost
+    let flowing: HashSet<_> = valves
+        .iter()
+        .filter(|(_, valve)| valve.flow > 0)
+        .map(|(&name, _)| name)
+        .collect();
+
+    // key: opened, val: relieved_at_end
+    let mut max_relieved_states: HashMap<BTreeSet<&str>, u32> = HashMap::new();
+
+    let mut q = VecDeque::new();
+    q.push_back(State {
+        curr: "AA",
+        opened: BTreeSet::new(),
+        elapsed: 0,
+        relieved: 0,
+    });
+
+    while let Some(State {
+        opened,
+        curr,
+        elapsed,
+        relieved,
+    }) = q.pop_front()
+    {
+        let relieved_at_end = wait_until_ending(26, elapsed, relieved, &opened, &valves);
+        // record state. only update state if it beats the `relieved_at_end` number
+        max_relieved_states
+            .entry(opened.clone())
+            .and_modify(|val| *val = relieved_at_end.max(*val))
+            .or_insert(relieved_at_end);
+
+        // if all flowing valves are opened or the timelimit was reached, skip
+        if opened.len() == flowing.len() || elapsed >= 26 {
+            continue;
+        }
+        // for every unopened valve, run simulation
+        let unopened = flowing.iter().filter(|name| !opened.contains(*name));
+
+        for dest in unopened {
+            // how long would moving to dest take? +1 to open the valve
+            let cost = dist_map[&(curr, *dest)] + 1;
+            let new_elapsed = elapsed + cost;
+            // if opening the dest valve would exceed the time limit, skip
+            if new_elapsed >= 26 {
+                continue;
+            }
+
+            // relieve pressure of opened valves while we move to dest and open it
+            let relieved_per_min: u32 = opened.iter().map(|name| &valves[name].flow).sum();
+            let new_relieved = relieved + (relieved_per_min * cost);
+
+            // add opened valve to opened valves
+            let mut new_opened = opened.clone();
+            new_opened.insert(dest);
+
+            q.push_back(State {
+                opened: new_opened,
+                curr: dest,
+                elapsed: new_elapsed,
+                relieved: new_relieved,
+            });
+        }
+    }
+
+    max_relieved_states
+        .iter()
+        .tuple_combinations()
+        .filter(|(human, elephant)| human.0.is_disjoint(elephant.0))
+        .map(|(human, elephant)| human.1 + elephant.1)
+        .max()
+        .unwrap()
+}
+
+pub fn solve_day_16() {
+    println!("Day 16 part one: {}", part_1());
+    println!("Day 16 part two: {}", part_2());
+}

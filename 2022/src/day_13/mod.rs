@@ -1,18 +1,17 @@
 use std::cmp::Ordering;
 
-use serde_json::{Value, json};
-
+use serde_json::{json, Value};
 
 const INPUT: &str = include_str!("input_day_13.txt");
 
-fn compare(left: &Value, right: &Value) -> Option<Ordering>{
+fn compare(left: &Value, right: &Value) -> Option<Ordering> {
     match (left, right) {
         (Value::Number(nl), Value::Number(nr)) => {
             match nl.as_u64().unwrap().cmp(&nr.as_u64().unwrap()) {
                 Ordering::Equal => None,
-                order => Some(order)
+                order => Some(order),
             }
-        },
+        }
         (Value::Array(left), Value::Array(right)) => {
             if left.is_empty() || right.is_empty() {
                 match left.len().cmp(&right.len()) {
@@ -24,21 +23,15 @@ fn compare(left: &Value, right: &Value) -> Option<Ordering>{
             } else {
                 compare(&json!(left[1..]), &json!(right[1..]))
             }
-        },
-        (Value::Number(left), Value::Array(right)) => {
-            compare(&json!(vec![left]), &json!(right))
-        },
-        (Value::Array(left), Value::Number(right)) => {
-            compare(&json!(left), &json!(vec![right]))
-        },
-        (_, _) => unreachable!()
+        }
+        (Value::Number(left), Value::Array(right)) => compare(&json!(vec![left]), &json!(right)),
+        (Value::Array(left), Value::Number(right)) => compare(&json!(left), &json!(vec![right])),
+        (_, _) => unreachable!(),
     }
 }
 
-
-pub fn solve_day_13() {
-    // Part 1
-    let solution = INPUT
+fn part_one() -> usize {
+    INPUT
         .split("\n\n")
         .enumerate()
         .filter_map(|(i, packets)| {
@@ -47,35 +40,44 @@ pub fn solve_day_13() {
             let right: Value = serde_json::from_str(packets[1]).unwrap();
 
             if compare(&left, &right) == Some(Ordering::Less) {
-                return Some(i+1)
+                return Some(i + 1);
             }
             None
-        }).sum::<usize>();
-    println!("solution: {:?}", solution);
+        })
+        .sum::<usize>()
+}
 
-    // Part 2
+fn part_two() -> usize {
     let mut solution = INPUT
-    .split("\n")
-    .filter_map(|packets| {
-        let packets = packets.trim();
-        if packets.is_empty() {
-            return None
-        }
-        let packet: Value = serde_json::from_str(packets).unwrap();
-        Some(packet)
-    })
-    .collect::<Vec<Value>>();
+        .split("\n")
+        .filter_map(|packets| {
+            let packets = packets.trim();
+            if packets.is_empty() {
+                return None;
+            }
+            let packet: Value = serde_json::from_str(packets).unwrap();
+            Some(packet)
+        })
+        .collect::<Vec<Value>>();
     solution.push(json!([[2]]));
     solution.push(json!([[6]]));
     solution.sort_by(|a, b| compare(a, b).unwrap());
-    let product: usize = solution.iter().enumerate().filter_map(|v| {
-        if v.1.to_string() == "[[2]]" || v.1.to_string() == "[[6]]" {
-            Some(v.0 + 1)
-        } else {
-            None
-        }
-    }).product();
-    println!("product {:?}", product);
+    solution
+        .iter()
+        .enumerate()
+        .filter_map(|v| {
+            if v.1.to_string() == "[[2]]" || v.1.to_string() == "[[6]]" {
+                Some(v.0 + 1)
+            } else {
+                None
+            }
+        })
+        .product()
+}
+
+pub fn solve_day_13() {
+    println!("Day 13 part one: {}", part_one());
+    println!("Day 13 part two: {}", part_two());
 }
 
 #[test]

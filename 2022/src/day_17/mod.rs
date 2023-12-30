@@ -1,250 +1,281 @@
-use std::collections::HashSet;
-
 const INPUT: &str = include_str!("day_17_input.txt");
-const TRILLION: usize = 1_000_000_000_000;
+use std::collections::HashMap;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-enum Gas {
+const WIDTH: usize = 7;
+const PIECES: [&[Coord]; 5] = [
+    // horizontal line
+    &[
+        Coord { x: 0, y: 0 },
+        Coord { x: 1, y: 0 },
+        Coord { x: 2, y: 0 },
+        Coord { x: 3, y: 0 },
+    ],
+    // plus
+    &[
+        Coord { x: 0, y: 1 },
+        Coord { x: 1, y: 0 },
+        Coord { x: 1, y: 1 },
+        Coord { x: 1, y: 2 },
+        Coord { x: 2, y: 1 },
+    ],
+    // J (or backwards L)
+    &[
+        Coord { x: 0, y: 0 },
+        Coord { x: 1, y: 0 },
+        Coord { x: 2, y: 0 },
+        Coord { x: 2, y: 1 },
+        Coord { x: 2, y: 2 },
+    ],
+    // vertical line
+    &[
+        Coord { x: 0, y: 0 },
+        Coord { x: 0, y: 1 },
+        Coord { x: 0, y: 2 },
+        Coord { x: 0, y: 3 },
+    ],
+    // square
+    &[
+        Coord { x: 0, y: 0 },
+        Coord { x: 1, y: 0 },
+        Coord { x: 0, y: 1 },
+        Coord { x: 1, y: 1 },
+    ],
+];
+
+#[derive(Debug, Clone)]
+enum Jet {
+    Left,
     Right,
-    Left
-}
-impl Gas {
-    fn new(c: char) -> Gas {
-        match c {
-            '>' => Gas::Right,
-            '<' => Gas::Left,
-            _ => unreachable!()
-        }
-    }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-enum Rocks {
-    HorizontalLine,
-    Plus,
-    LShape,
-    VerticalLine,
-    Square
+#[derive(Debug, PartialEq, Default)]
+struct Coord {
+    x: u64,
+    // positive y goes up.
+    // happy mathematicians, sad game programmers
+    y: u64,
 }
 
-impl Rocks {
-    fn get_starting_positions(&self, h: usize) -> Vec<(usize, usize)> {
-        match *self {
-            Rocks::HorizontalLine => vec![
-                (2, h),
-                (3, h),
-                (4, h),
-                (5, h)
-            ],
-            Rocks::Plus => vec![
-                (3, h), // Bottom
-                (2, h+1),
-                (3, h+1),
-                (4, h+1),
-                (3, h+2) // top
-            ],
-            Rocks::LShape => vec![
-                (2, h),
-                (3, h),
-                (4, h),
-                (4, h+1),
-                (4, h+2)
-            ],
-            Rocks::VerticalLine => vec![
-                (2, h),
-                (2, h+1),
-                (2, h+2),
-                (2, h+3),
-            ],
-            Rocks::Square => vec![
-                (2, h),
-                (3, h),
-                (2, h+1),
-                (3, h+1)
-            ],
-        }
-    }
+#[derive(Default)]
+struct State {
+    jet_count: u64,
+    piece_count: u64,
+    added_by_repeats: u64,
+    top: u64,
+    map: Vec<[bool; WIDTH]>,
+    curr: Coord,
+    seen: HashMap<(u64, u64), (u32, u64, u64)>,
+}
 
-    fn move_rock_right(&self, curr_pos: &mut Vec<(usize, usize)>, grid: &HashSet<(usize, usize)>) {
-        // When moving rock right, need to check that its x pos <= 6, also checking for other rocks
-        let mut can_move_right = true;
-        for (x, y) in curr_pos.iter() {
-            if *x + 1 == 7 || grid.contains(&(*x+1, *y)) {
-                // if grid contains (x+1, y) then there is already a rock in that position and it cannot move.
-                can_move_right = false;
+impl State {
+    fn is_valid(&mut self, new_curr: &Coord, piece: &[Coord]) -> bool {
+        piece.iter().all(|offset| {
+            let x = new_curr.x + offset.x;
+            let y = new_curr.y + offset.y;
+            while self.map.len() as u64 <= y {
+                self.map.push([false; WIDTH]);
+            }
+            x < WIDTH as u64 && !self.map[y as usize][x as usize]
+        })
+    }
+}
+
+impl std::fmt::Display for State {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let piece = PIECES[(self.piece_count % PIECES.len() as u64) as usize];
+        let mut print: Vec<Vec<_>> = self
+            .map
+            .iter()
+            .map(|row| {
+                row.iter()
+                    .map(|rock| if *rock { '#' } else { '.' })
+                    .collect()
+            })
+            .collect();
+        let mut local_top = self.top;
+        for offset in piece {
+            let x = self.curr.x + offset.x;
+            let y = self.curr.y + offset.y;
+            while print.len() as u64 <= y {
+                print.push(vec!['.'; WIDTH]);
+            }
+            print[y as usize][x as usize] = '@';
+            local_top = local_top.max(y);
+        }
+        for row in (0..=local_top).rev() {
+            let mut row_str = String::from('|');
+            for col in 0..7 {
+                row_str.push(print[row as usize][col]);
+            }
+            row_str.push('|');
+            row_str.push('\n');
+            write!(f, "{}", row_str)?;
+        }
+        writeln!(f, "+{}+", "-".repeat(WIDTH))
+    }
+}
+
+fn parse(input: &str) -> Vec<Jet> {
+    let jets = input
+        .trim()
+        .chars()
+        .map(|c| match c {
+            '<' => Jet::Left,
+            '>' => Jet::Right,
+            _ => panic!("Invalid jet"),
+        })
+        .collect();
+
+    jets
+}
+
+fn part_1() -> u64 {
+    let target = 2022;
+    let jets = parse(INPUT);
+    let mut state: State = Default::default();
+
+    while state.piece_count != target {
+        // new piece starts falling
+        let piece = PIECES[(state.piece_count % PIECES.len() as u64) as usize];
+        state.curr.x = 2;
+        state.curr.y = state.top + 3;
+
+        loop {
+            // jet
+            let jet = &jets[(state.jet_count % jets.len() as u64) as usize];
+            let new_curr = match jet {
+                Jet::Left => Coord {
+                    x: state.curr.x.saturating_sub(1),
+                    y: state.curr.y,
+                },
+                Jet::Right => Coord {
+                    x: state.curr.x + 1,
+                    y: state.curr.y,
+                },
+            };
+            if state.is_valid(&new_curr, piece) {
+                state.curr = new_curr;
+            }
+            state.jet_count += 1;
+
+            // fall
+            let new_curr = Coord {
+                x: state.curr.x,
+                y: state.curr.y.saturating_sub(1),
+            };
+            if state.curr.y == 0 || !state.is_valid(&new_curr, piece) {
                 break;
             }
+            state.curr = new_curr;
         }
-        if can_move_right {
-            for (x, _) in curr_pos {
-                *x += 1;
-            }
+
+        // settle
+        for offset in piece {
+            let x = state.curr.x + offset.x;
+            let y = state.curr.y + offset.y;
+            state.map[y as usize][x as usize] = true;
+            // y is 0 indexed.
+            state.top = state.top.max(y + 1);
         }
+
+        // prepare for next iteration of while loop
+        state.piece_count += 1;
     }
 
-    fn move_rock_left(&self, curr_pos: &mut Vec<(usize, usize)>, grid: &HashSet<(usize, usize)>) {
-        // When moving rock right, need to check that its x pos <= 6, also checking for other rocks
-        let mut can_move_left = true;
-        for (x, y) in curr_pos.iter() {
-            if *x as isize - 1 < 0 || grid.contains(&(*x-1, *y)) {
-                // if grid contains (x+1, y) then there is already a rock in that position and it cannot move.
-                can_move_left = false;
+    state.top
+}
+
+fn part_2() -> u64 {
+    let target = 1_000_000_000_000;
+    let jets = parse(INPUT);
+    let mut state: State = Default::default();
+
+    while state.piece_count != target {
+        // new piece starts falling
+        let piece = PIECES[(state.piece_count % PIECES.len() as u64) as usize];
+        state.curr.x = 2;
+        state.curr.y = state.top + 3;
+
+        loop {
+            // jet
+            let jet = &jets[(state.jet_count % jets.len() as u64) as usize];
+            let new_curr = match jet {
+                Jet::Left => Coord {
+                    x: state.curr.x.saturating_sub(1),
+                    y: state.curr.y,
+                },
+                Jet::Right => Coord {
+                    x: state.curr.x + 1,
+                    y: state.curr.y,
+                },
+            };
+            if state.is_valid(&new_curr, piece) {
+                state.curr = new_curr;
+            }
+            state.jet_count += 1;
+
+            // fall
+            let new_curr = Coord {
+                x: state.curr.x,
+                y: state.curr.y.saturating_sub(1),
+            };
+            if state.curr.y == 0 || !state.is_valid(&new_curr, piece) {
                 break;
             }
+            state.curr = new_curr;
         }
-        if can_move_left {
-            for (x, _) in curr_pos {
-                *x -= 1;
+
+        // settle
+        for offset in piece {
+            let x = state.curr.x + offset.x;
+            let y = state.curr.y + offset.y;
+            while state.map.len() as u64 <= y {
+                state.map.push([false; WIDTH]);
             }
+            state.map[y as usize][x as usize] = true;
+            // y is 0 indexed
+            state.top = state.top.max(y + 1);
         }
-    }
 
-    fn can_rock_move_down(&self, curr_pos: &Vec<(usize, usize)>, grid: &HashSet<(usize, usize)>) -> bool {
-        let mut can_move_down = true;
-        for (x, y) in curr_pos.iter() {
-            if *y as isize - 1 < 0 || grid.contains(&(*x, *y-1)) {
-                // if grid contains (x+1, y) then there is already a rock in that position and it cannot move.
-                can_move_down = false;
-                break;
+        // look for cycle
+        if state.added_by_repeats == 0 {
+            let key = (
+                state.piece_count % PIECES.len() as u64,
+                state.jet_count % jets.len() as u64,
+            );
+            // at third occurrence of key, the values in the seen map repeat
+            // add as many of them as possible without hitting the goal piece_count
+            if let Some((2, old_piece_count, old_top)) = state.seen.get(&key) {
+                let delta_top = state.top - old_top;
+                let delta_piece_count = state.piece_count - old_piece_count;
+                let repeats = (target - state.piece_count) / delta_piece_count;
+                state.added_by_repeats += repeats * delta_top;
+                state.piece_count += repeats * delta_piece_count;
             }
+            // update seen map
+            // key: (piece_count % PIECES.len(), jet_count % jets.len())
+            // value: (amount_of_times_key_was_seen, piece_count, top)
+            state
+                .seen
+                .entry(key)
+                .and_modify(|(amnt, old_piece_count, old_top)| {
+                    *amnt += 1;
+                    *old_piece_count = state.piece_count;
+                    *old_top = state.top;
+                })
+                .or_insert((1, state.piece_count, state.top));
         }
-        can_move_down
+
+        // prepare for next iteration of while loop
+        state.piece_count += 1;
     }
 
-    fn move_rock_down(&self, curr_pos: &mut Vec<(usize, usize)>) {
-        // This function is under the assumption that the rock can move down.
-        for (_, y) in curr_pos {
-            *y -= 1;
-        }
-    }
+    let top = state.top + state.added_by_repeats;
 
-    fn place_rock(&self, curr_pos: &Vec<(usize, usize)>, grid: &mut HashSet<(usize, usize)>) {
-        // Places all the points in cur_pos in grid
-        for (x, y) in curr_pos {
-            grid.insert((*x, *y));
-        }
-    }
-
+    top
 }
 
 pub fn solve_day_17() {
-    solve_part_one();
-    // part 2
-    // same current rock, current push, last rock that fell.
-    let mut grid: HashSet<(usize, usize)> = HashSet::new(); // Will contain the points of all rocks
-    let mut rock_count = 0;
-    let mut gases_iter = INPUT.chars().map(|c| Gas::new(c) ).into_iter().cycle();
-    let gases_length = INPUT.len();
-    let rocks = vec![Rocks::HorizontalLine, Rocks::Plus, Rocks::LShape, Rocks::VerticalLine, Rocks::Square];
-    let mut rocks_iter = rocks.iter().cycle();
-    let mut total_jets_used = 0;
-    let mut cycle: HashSet<(usize, usize, Vec<Rocks>)> = HashSet::new(); // (Current Rock Index, Current Gas Index, The previous 10 rocks)
-    let mut previous_ten: Vec<Rocks> = vec![];
-    let mut found_cycle: Option<(usize, (usize, usize, Vec<Rocks>), usize)> = None; // Height of rocks, (rock count, gas len, previous 10), rock count
-    let mut height_reached: usize = 0;
-    let mut limit = 50_455;
-    while rock_count < limit {
-        let current_rock = rocks_iter.next().unwrap();
-        let height = get_height_of_rocks(&grid) + 3 ; // Plus three since height will start 3 above the highest rock
-        let mut curr_pos = current_rock.get_starting_positions(height);
-        let mut gases_for_rock = vec![];
-        if previous_ten.len() < 10 {
-            previous_ten.push(current_rock.clone());
-        } else {
-            let last = previous_ten.last().unwrap();
-            previous_ten = vec![last.clone()];
-        }
-        'falling: loop {
-            // Starting dropping rocks
-            let gas = gases_iter.next().unwrap();
-            if previous_ten.len() == 10 {
-                if !cycle.insert((rock_count % 5, total_jets_used % gases_length, previous_ten.clone())) && rock_count > 2022 {
-                    if let Some(found_cycle) = found_cycle.as_ref() {
-                        if found_cycle.1 == (rock_count % 5, total_jets_used % gases_length, previous_ten.clone()) {
-                            // This same formation has been found
-                            let curr_height = get_height_of_rocks(&grid);
-                            let prev_rock_count = found_cycle.2;
-                            let rock_count_diff = rock_count - prev_rock_count;
-                            let last_height = found_cycle.0;
-                            let height_diff = curr_height - last_height;
-                            let iterations_left = TRILLION / rock_count_diff;
-                            height_reached = height_diff * iterations_left;
-                            let iterations_left = TRILLION - (rock_count_diff * iterations_left);
-                            rock_count = 0;
-                            limit = iterations_left;
-                        }
-                    } else {
-                        found_cycle = Some((get_height_of_rocks(&grid), (rock_count % 5, total_jets_used % gases_length, previous_ten.clone()), rock_count))
-                    }
-                }
-            }
-            match gas {
-                Gas::Right => current_rock.move_rock_right(&mut curr_pos, &grid),
-                Gas::Left => current_rock.move_rock_left(&mut curr_pos, &grid),
-            }
-            total_jets_used += 1;
-            gases_for_rock.push(gas);
-            // Check below rock before stop
-            if !current_rock.can_rock_move_down(&mut curr_pos, &grid) {
-                break 'falling;
-            }
-
-            // Rock can keep falling
-            current_rock.move_rock_down(&mut curr_pos);
-           
-        }
-        // Place rock
-        current_rock.place_rock(&curr_pos, &mut grid);
-        rock_count += 1;
-    }
-    let heights = get_height_of_rocks(&grid) + height_reached - (2 *found_cycle.unwrap().0);
-
-    println!("Height prt 2: {}", heights);
-
-}
-
-fn solve_part_one() {
-    let mut grid: HashSet<(usize, usize)> = HashSet::new(); // Will contain the points of all rocks
-    let mut rock_count = 0;
-    let mut gases_iter = INPUT.chars().map(|c| Gas::new(c) ).into_iter().cycle();
-    let rocks = vec![Rocks::HorizontalLine, Rocks::Plus, Rocks::LShape, Rocks::VerticalLine, Rocks::Square];
-    let mut rocks_iter = rocks.iter().cycle();
-    while rock_count < 2022 {
-        let current_rock = rocks_iter.next().unwrap();
-        let height = get_height_of_rocks(&grid) + 3 ; // Plus three since height will start 3 above the highest rock
-        let mut curr_pos = current_rock.get_starting_positions(height);
-        'falling: loop {
-            // Starting dropping rocks
-            let gas = gases_iter.next().unwrap();
-            match gas {
-                Gas::Right => current_rock.move_rock_right(&mut curr_pos, &grid),
-                Gas::Left => current_rock.move_rock_left(&mut curr_pos, &grid),
-            }
-
-            // Check below rock before stop
-            if !current_rock.can_rock_move_down(&mut curr_pos, &grid) {
-                break 'falling;
-            }
-
-            // Rock can keep falling
-            current_rock.move_rock_down(&mut curr_pos);
-        }
-        // Place rock
-        current_rock.place_rock(&curr_pos, &mut grid);
-        rock_count += 1;
-    }
-    
-    println!("Height: {}", get_height_of_rocks(&grid));
-}
-fn get_height_of_rocks(grid: &HashSet<(usize, usize)>) -> usize {
-    if grid.is_empty() {
-        return 0
-    }
-    let mut max_y = 0;
-    grid.iter().for_each(|(_, y)| {
-        if *y > max_y {
-            max_y = *y
-        }
-    });
-    max_y + 1
+    println!("Day 17 part one: {}", part_1());
+    println!("Day 17 part two: {}", part_2());
 }
