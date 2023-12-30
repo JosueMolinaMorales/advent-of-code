@@ -17,9 +17,13 @@ def partTwo(dimensions):
     return sum
 
 
-if __name__ == "__main__":
+def run_day_two():
     with open("./input/day2.txt") as f:
         dimensions = f.readlines()
         dimensions = [x.rstrip().split('x') for x in dimensions]
-    print(partOne(dimensions))
-    print(partTwo(dimensions))
+    print("Day 2 part one:", partOne(dimensions))
+    print("Day 2 part two:", partTwo(dimensions))
+
+
+if __name__ == "__main__":
+    run_day_two()

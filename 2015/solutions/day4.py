@@ -18,7 +18,11 @@ def partTwo(key):
     return md5(key, "000000")
 
 
-if __name__ == "__main__":
+def run_day_four():
     key = "yzbqklnj"
-    print(partOne(key))
-    print(partTwo(key))
+    print("Day 4 part one:", partOne(key))
+    print("Day 4 part two:", partTwo(key))
+
+
+if __name__ == "__main__":
+    run_day_four()

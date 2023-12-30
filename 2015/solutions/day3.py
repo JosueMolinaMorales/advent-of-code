@@ -35,8 +35,12 @@ def partTwo(moves):
     return len(set(sh+rh))
 
 
-if __name__ == "__main__":
+def run_day_three():
     with open("./input/day3.txt", "r") as f:
         input = f.readline()
-        print(partOne(input))
-        print(partTwo(input))
+        print("Day 3 part one:", partOne(input))
+        print("Day 3 part two:", partTwo(input))
+
+
+if __name__ == "__main__":
+    run_day_three()

@@ -27,8 +27,12 @@ def partTwo(lines):
     return niceCount
 
 
-if __name__ == "__main__":
+def run_day_five():
     with open("./input/day5.txt", "r") as f:
         lines = [x.strip() for x in f.readlines()]
-        print(partOne(lines))
-        print(partTwo(lines))
+        print("Day 5 part one:", partOne(lines))
+        print("Day 5 part two:", partTwo(lines))
+
+
+if __name__ == "__main__":
+    run_day_five()

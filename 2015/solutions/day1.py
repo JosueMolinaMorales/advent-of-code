@@ -6,7 +6,7 @@ def part_one(input):
             count += 1
         else:
             count -= 1
-    print(count)
+    return count
 
 
 def part_two(input):
@@ -20,14 +20,14 @@ def part_two(input):
             if count == -1:
                 position = i + 1
                 break
-    print(position)
+    return position
 
 
 def run_day_one():
     with open("./input/dayone.txt", "r") as f:
         input = f.read()
-        # part_one(input)
-        part_two(input)
+        print("Day 1 part one:", part_one(input))
+        print("Day 2 part two:", part_two(input))
 
 
 if __name__ == "__main__":
