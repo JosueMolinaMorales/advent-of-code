@@ -13,6 +13,7 @@ from solutions.day12 import *
 from solutions.day13 import *
 from solutions.day14 import *
 from solutions.day15 import *
+from solutions.day16 import *
 
 
 def main():
@@ -30,7 +31,8 @@ def main():
     # run_day_twelve()
     # run_day_thirteen()
     # run_day_fourteen()
-    run_day_fifteen()
+    # run_day_fifteen()
+    run_day_sixteen()
 
 
 if __name__ == "__main__":
