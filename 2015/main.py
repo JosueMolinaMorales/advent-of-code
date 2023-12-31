@@ -8,6 +8,7 @@ from solutions.day7 import *
 from solutions.day8 import *
 from solutions.day9 import *
 from solutions.day10 import *
+from solutions.day11 import *
 
 
 def main():
@@ -20,7 +21,8 @@ def main():
     # run_day_seven()
     # run_day_eight()
     # run_day_nine()
-    run_day_ten()
+    # run_day_ten()
+    run_day_eleven()
 
 
 if __name__ == "__main__":
