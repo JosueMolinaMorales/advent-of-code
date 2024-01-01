@@ -32,37 +32,51 @@ def neighbors(point, points):
     return n
 
 
-def print_grind(points):
-    for i in range(6):
-        for j in range(6):
-            print("#" if points[(i, j)] else ".", end="")
-        print("")
+def switch_lights(lights):
+    new_lights = {}
+    for key in lights.keys():
+        n = neighbors(key, lights)
+        on_n = n.count(True)
+
+        if lights[key] and (on_n != 2 and on_n != 3):
+            # Turn off if it was on and it doesnt have 2 or three lights on
+            new_lights[key] = False
+        elif not lights[key] and on_n == 3:
+            # Light turns on when it is off and it has three on neighbors
+            new_lights[key] = True
+        else:
+            new_lights[key] = lights[key]
+
+    return new_lights
 
 
 def part_one(input):
     lights = parse(input)
 
     for _ in range(100):
-        new_lights = {}
-        for key in lights.keys():
-            n = neighbors(key, lights)
-            on_n = n.count(True)
-
-            if lights[key] and (on_n != 2 and on_n != 3):
-                # Turn off if it was on and it doesnt have 2 or three lights on
-                new_lights[key] = False
-            elif not lights[key] and on_n == 3:
-                # Light turns on when it is off and it has three on neighbors
-                new_lights[key] = True
-            else:
-                new_lights[key] = lights[key]
-
+        lights = switch_lights(lights)
     # Count how many lights are on
-    return sum(map(lambda l: 1 if l else 0, new_lights.values()))
+    return sum(map(lambda l: 1 if l else 0, lights.values()))
 
 
 def part_two(input):
-    pass
+    lights = parse(input)
+    # Turn on the four corners
+    lights[(0, 0)] = True
+    lights[(0, 99)] = True
+    lights[(99, 0)] = True
+    lights[(99, 99)] = True
+
+    for _ in range(100):
+        lights = switch_lights(lights)
+        # Turn on the four corners
+        lights[(0, 0)] = True
+        lights[(0, 99)] = True
+        lights[(99, 0)] = True
+        lights[(99, 99)] = True
+
+    # Count how many lights are on
+    return sum(map(lambda l: 1 if l else 0, lights.values()))
 
 
 def run_day_eighteen():
