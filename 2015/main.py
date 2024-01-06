@@ -20,6 +20,7 @@ from solutions.day19 import *
 from solutions.day20 import *
 from solutions.day21 import *
 from solutions.day22 import *
+from solutions.day23 import *
 
 
 def main():
@@ -44,7 +45,8 @@ def main():
     # run_day_nineteen()
     # run_day_twenty()
     # run_day_twentyone()
-    run_day_twenty_two()
+    # run_day_twenty_two()
+    run_day_twenty_three()
 
 
 if __name__ == "__main__":
