@@ -1,2 +1,11 @@
 **/input/**
 **/__pycache__/**
+**/.gradle/**
+**/.idea/**
+**/.settings/**
+**/.vscode/**
+**/.vs/**
+**/build/**
+**/dist/**
+**/node_modules/**
+**/bin/**
