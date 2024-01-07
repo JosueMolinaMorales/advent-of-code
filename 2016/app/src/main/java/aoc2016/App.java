@@ -5,10 +5,12 @@ package aoc2016;
 
 import aoc2016.solutions.Day1;
 import aoc2016.solutions.Day2;
+import aoc2016.solutions.Day3;
 
 public class App {
     public static void main(String[] args) {
         // Day1.solve();
-        Day2.solve();
+        // Day2.solve();
+        Day3.solve();
     }
 }
