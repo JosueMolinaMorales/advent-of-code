@@ -31,7 +31,6 @@ public class Day4 {
         ClassLoader cl = Day4.class.getClassLoader();
         File file = new File(cl.getResource("day4.txt").getFile());
 
-        // 8265 too low
         System.out.println("Day 4 part 1: " + part1(file));
         System.out.println("Day 4 part 2: " + part2(file));
     }
@@ -52,7 +51,6 @@ public class Day4 {
     }
 
     private static boolean isRoomValid(Room room) {
-        // Key: character, Value: (count, index)
         HashMap<Character, Integer> counts = new HashMap<>();
         for (int i = 0; i < room.name.length(); i++) {
             char ch = room.name.charAt(i);

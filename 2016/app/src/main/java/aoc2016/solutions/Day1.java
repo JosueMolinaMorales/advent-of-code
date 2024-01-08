@@ -78,14 +78,12 @@ public class Day1 {
     private static int part1(File file) {
         Step[] input = parseInput(file);
         Point point = findBunnyHQ(input, false);
-        // Take the manhattan distance from the origin
         return point.manhattanDistance(new Point());
     }
 
     private static int part2(File file) {
         Step[] input = parseInput(file);
         Point point = findBunnyHQ(input, true);
-        // Take the manhattan distance from the origin
         return point.manhattanDistance(new Point());
     }
 
