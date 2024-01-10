@@ -10,6 +10,8 @@ package aoc2016;
 import aoc2016.solutions.Day5;
 import aoc2016.solutions.Day6;
 import aoc2016.solutions.Day7;
+import aoc2016.solutions.Day8;
+import aoc2016.solutions.Day9;
 
 public class App {
     public static void main(String[] args) {
@@ -19,6 +21,8 @@ public class App {
         // Day4.solve();
         // Day5.solve();
         // Day6.solve();
-        Day7.solve();
+        // Day7.solve();
+        // Day8.solve();
+        Day9.solve();
     }
 }
