@@ -26,4 +26,18 @@ public class Point {
         Point otherPoint = (Point) other;
         return x == otherPoint.x && y == otherPoint.y;
     }
+
+    @Override
+    public String toString() {
+        return "(" + x + ", " + y + ")";
+    }
+
+    @Override
+    public int hashCode() {
+        // https://stackoverflow.com/questions/113511/hash-code-implementation
+        int result = 17;
+        result = 31 * result + x;
+        result = 31 * result + y;
+        return result;
+    }
 }
