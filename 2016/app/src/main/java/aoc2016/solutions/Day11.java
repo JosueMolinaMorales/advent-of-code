@@ -2,6 +2,7 @@ package aoc2016.solutions;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.PriorityQueue;
 
 import aoc2016.utils.FileLoader;
@@ -21,16 +22,25 @@ public class Day11 {
         }
 
         @Override
-        public String toString() {
-            return this.name + " " + this.type;
+        public boolean equals(Object obj) {
+            if (!(obj instanceof Item)) {
+                return false;
+            }
+            Item other = (Item) obj;
+            return this.type == other.type && this.name.equals(other.name);
+        }
+
+        @Override
+        public int hashCode() {
+            return this.name.hashCode() + this.type.hashCode();
         }
     }
 
     private static class Floor {
-        ArrayList<Item> items;
+        HashSet<Item> items;
 
         public Floor() {
-            this.items = new ArrayList<>();
+            this.items = new HashSet<>();
         }
 
         public void addItem(Item item) {
@@ -41,42 +51,58 @@ public class Day11 {
             this.items.remove(item);
         }
 
-        /**
-         * Returns true if the floor is valid, false otherwise.
-         * A floor is valid if it does not contain a microchip without its corresponding
-         * generator.
-         * 
-         * @return true if the floor is valid, false otherwise.
-         */
-        public boolean isValidFloor() {
-            ArrayList<String> generators = new ArrayList<>();
-            ArrayList<String> microchips = new ArrayList<>();
+        @Override
+        public int hashCode() {
+            return this.items.hashCode();
+        }
 
-            for (int i = 0; i < this.items.size(); i++) {
-                if (this.items.get(i).type == ItemType.GENERATOR) {
-                    generators.add(this.items.get(i).name);
-                } else {
-                    microchips.add(this.items.get(i).name);
+        public boolean isValidFloor() {
+            if (this.items.size() == 0) {
+                return true;
+            }
+            ArrayList<Item> generators = new ArrayList<>();
+            ArrayList<Item> microchips = new ArrayList<>();
+            for (Item item : this.items) {
+                if (item.type == ItemType.GENERATOR) {
+                    generators.add(item);
+                } else if (item.type == ItemType.MICROCHIP) {
+                    microchips.add(item);
                 }
             }
+            if (generators.size() == 0 || microchips.size() == 0) {
+                return true;
+            }
 
-            for (int i = 0; i < microchips.size(); i++) {
-                if (!generators.contains(microchips.get(i))) {
+            for (Item microchip : microchips) {
+                boolean found = false;
+                for (Item generator : generators) {
+                    if (microchip.name.equals(generator.name)) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
                     return false;
                 }
             }
 
             return true;
+
         }
 
-        @Override
-        public String toString() {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < this.items.size(); i++) {
-                sb.append(this.items.get(i) + " ");
+        /**
+         * Make a deep copy of the floor.
+         * 
+         * @return a deep copy of the floor.
+         */
+        public Floor copy() {
+            Floor newFloor = new Floor();
+            for (Item item : this.items) {
+                newFloor.addItem(new Item(item.type, item.name));
             }
-            return sb.toString();
+            return newFloor;
         }
+
     }
 
     public static void solve() {
@@ -89,7 +115,6 @@ public class Day11 {
         HashMap<Integer, Floor> items = new HashMap<>();
         String[] lines = input.replaceAll("-compatible", "").replaceAll(",", "").replace(".", "").split("\n");
         for (int i = 0; i < lines.length; i++) {
-            System.out.println(lines[i]);
             String[] words = lines[i].split(" ");
             for (int j = 0; j < words.length; j++) {
                 if (!items.containsKey(i)) {
@@ -103,8 +128,6 @@ public class Day11 {
             }
         }
 
-        // Add empty floor
-        items.put(lines.length, new Floor());
         return items;
     }
 
@@ -120,28 +143,117 @@ public class Day11 {
         }
     }
 
-    public static int part1(String input) {
-        HashMap<Integer, Floor> floors = parseInput(input);
-        for (int i = 0; i < floors.size(); i++) {
-            System.out.println("Floor " + i + ": " + floors.get(i));
-        }
+    private static int dijkstra(HashMap<Integer, Floor> floors) {
         // Use dijkstra's algorithm to find the minimum number of steps to move all
         // items to the top floor.
         PriorityQueue<State> queue = new PriorityQueue<>((a, b) -> a.steps - b.steps);
         queue.add(new State(floors, 0, 0));
-
+        HashSet<String> visited = new HashSet<>();
         while (!queue.isEmpty()) {
             State state = queue.poll();
-            System.out.println("State: " + state.elevatorFloor + " " + state.steps);
-            if (state.elevatorFloor == 3) {
+            if (isAllOnTopFloor(state.floors)) {
                 return state.steps;
             }
 
+            int currentFloor = state.elevatorFloor;
+            HashSet<HashSet<Item>> combinations = generateCombinations(state.floors.get(currentFloor).items);
+
+            int[] directions = { -1, 1 };
+            for (HashSet<Item> possibleMove : combinations) {
+                for (int direction : directions) {
+                    int newFloor = currentFloor + direction;
+                    if (newFloor < 0 || newFloor >= floors.size()) {
+                        continue;
+                    }
+
+                    HashMap<Integer, Floor> newFloors = new HashMap<>();
+                    for (int i = 0; i < floors.size(); i++) {
+                        newFloors.put(i, state.floors.get(i).copy());
+                    }
+                    for (Item item : possibleMove) {
+                        newFloors.get(currentFloor).removeItem(item);
+                        newFloors.get(newFloor).addItem(item);
+                    }
+
+                    if (newFloors.get(currentFloor).isValidFloor() && newFloors.get(newFloor).isValidFloor()) {
+                        State newState = new State(newFloors, newFloor, state.steps + 1);
+                        String key = generateKey(newState);
+                        if (visited.contains(key)) {
+                            continue;
+                        }
+                        visited.add(key);
+                        queue.add(newState);
+                    }
+                }
+            }
         }
-        return 0;
+        return -1;
+    }
+
+    public static int part1(String input) {
+        HashMap<Integer, Floor> floors = parseInput(input);
+
+        return dijkstra(floors);
+    }
+
+    private static boolean isAllOnTopFloor(HashMap<Integer, Floor> floors) {
+        for (int i = 0; i < floors.size() - 1; i++) {
+            if (floors.get(i).items.size() > 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static HashSet<HashSet<Item>> generateCombinations(HashSet<Item> items) {
+        HashSet<HashSet<Item>> combinations = new HashSet<>();
+        // Add all single item combinations
+        for (Item item : items) {
+            HashSet<Item> combination = new HashSet<>();
+            combination.add(item);
+            combinations.add(combination);
+        }
+        // Add all double item combinations
+        for (Item item1 : items) {
+            for (Item item2 : items) {
+                if (item1.equals(item2)) {
+                    continue;
+                }
+                HashSet<Item> combination = new HashSet<>();
+                combination.add(item1);
+                combination.add(item2);
+                combinations.add(combination);
+            }
+        }
+        return combinations;
+    }
+
+    private static String generateKey(State state) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(state.elevatorFloor);
+        for (int i = 0; i < state.floors.size(); i++) {
+            int generators = 0;
+            int microchips = 0;
+            for (Item item : state.floors.get(i).items) {
+                if (item.type == ItemType.GENERATOR) {
+                    generators++;
+                } else if (item.type == ItemType.MICROCHIP) {
+                    microchips++;
+                }
+            }
+            sb.append(i + "" + generators + "" + microchips);
+        }
+
+        return sb.toString();
     }
 
     public static int part2(String input) {
-        return 0;
+        HashMap<Integer, Floor> floors = parseInput(input);
+        floors.get(0).addItem(new Item(ItemType.GENERATOR, "elerium"));
+        floors.get(0).addItem(new Item(ItemType.MICROCHIP, "elerium"));
+        floors.get(0).addItem(new Item(ItemType.GENERATOR, "dilithium"));
+        floors.get(0).addItem(new Item(ItemType.MICROCHIP, "dilithium"));
+
+        return dijkstra(floors);
     }
 }
