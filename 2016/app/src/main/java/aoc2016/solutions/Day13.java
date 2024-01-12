@@ -2,10 +2,8 @@ package aoc2016.solutions;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.PriorityQueue;
 
-import aoc2016.utils.FileLoader;
 import aoc2016.utils.Point;
 
 public class Day13 {
