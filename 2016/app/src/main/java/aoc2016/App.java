@@ -8,6 +8,7 @@ import aoc2016.solutions.Day11;
 import aoc2016.solutions.Day12;
 import aoc2016.solutions.Day13;
 import aoc2016.solutions.Day14;
+import aoc2016.solutions.Day15;
 // import aoc2016.solutions.Day1;
 // import aoc2016.solutions.Day2;
 // import aoc2016.solutions.Day3;
@@ -33,6 +34,7 @@ public class App {
         // Day11.solve();
         // Day12.solve();
         // Day13.solve();
-        Day14.solve();
+        // Day14.solve();
+        Day15.solve();
     }
 }
