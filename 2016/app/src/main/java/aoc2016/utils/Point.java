@@ -18,6 +18,19 @@ public class Point {
         return Math.abs(x - other.x) + Math.abs(y - other.y);
     }
 
+    public Direction toDirection() {
+        if (x == -1 && y == 0) {
+            return Direction.UP;
+        } else if (x == 1 && y == 0) {
+            return Direction.DOWN;
+        } else if (x == 0 && y == -1) {
+            return Direction.LEFT;
+        } else if (x == 0 && y == 1) {
+            return Direction.RIGHT;
+        }
+        return null;
+    }
+
     @Override
     public boolean equals(Object other) {
         if (!(other instanceof Point)) {
