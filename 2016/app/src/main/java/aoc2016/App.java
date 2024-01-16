@@ -17,6 +17,7 @@ import aoc2016.solutions.Day20;
 import aoc2016.solutions.Day21;
 import aoc2016.solutions.Day22;
 import aoc2016.solutions.Day23;
+import aoc2016.solutions.Day24;
 // import aoc2016.solutions.Day1;
 // import aoc2016.solutions.Day2;
 // import aoc2016.solutions.Day3;
@@ -51,6 +52,7 @@ public class App {
         // Day20.solve();
         // Day21.solve();
         // Day22.solve();
-        Day23.solve();
+        // Day23.solve();
+        Day24.solve();
     }
 }
