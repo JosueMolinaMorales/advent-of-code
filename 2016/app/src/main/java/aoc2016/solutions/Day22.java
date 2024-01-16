@@ -52,8 +52,6 @@ public class Day22 {
                 maxY = node.y;
             }
         }
-        System.out.println("Max X: " + maxX);
-        System.out.println("Max Y: " + maxY);
         char[][] grid = new char[maxY + 1][maxX + 1];
         for (Node node : nodes) {
             if (node.used == 0) {
