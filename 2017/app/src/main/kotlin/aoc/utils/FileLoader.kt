@@ -10,4 +10,8 @@ class FileLoader(private val fileName: String) {
 
         return resource.readText()
     }
+
+    fun readLines(): List<String> {
+        return readFile().split("\n")
+    }
 }
