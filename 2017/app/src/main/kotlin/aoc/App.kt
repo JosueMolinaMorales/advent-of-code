@@ -3,7 +3,7 @@
  */
 package aoc
 
-import aoc.solutions.solveDaySeven
+import aoc.solutions.solveDayNine
 
 fun main() {
 //    solveDayOne()
@@ -12,5 +12,7 @@ fun main() {
 //    solveDayFour()
 //    solveDayFive()
 //    solveDaySix()
-    solveDaySeven()
+//    solveDaySeven()
+//    solveDayEight()
+    solveDayNine()
 }
