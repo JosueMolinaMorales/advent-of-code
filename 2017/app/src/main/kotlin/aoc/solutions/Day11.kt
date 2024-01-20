@@ -2,6 +2,7 @@ package aoc.solutions
 
 import aoc.utils.FileLoader
 import aoc.utils.Point
+import kotlin.math.abs
 
 fun solveDayEleven() {
     val input = FileLoader("day11.txt").readFile()
@@ -15,15 +16,19 @@ private fun partOne(input: String): Int {
         point = movePoint(it, point)
     }
 
-    return Point(0, 0).manhattanDistance(point) / 2
+    return calcDist(point)
 }
 
 private fun partTwo(input: String): Int {
     var point = Point(0, 0)
     return input.split(",").maxOfOrNull {
         point = movePoint(it, point)
-        Point(0, 0).manhattanDistance(point) / 2
+        calcDist(point)
     } ?: 0
+}
+
+private fun calcDist(point: Point): Int {
+    return (abs(point.y) + abs(point.x) + maxOf(0, abs(point.y) - abs(point.x))) / 2
 }
 
 private fun movePoint(
