@@ -25,6 +25,19 @@ private fun partOne(input: String): Int {
 }
 
 private fun partTwo(input: String): String {
+    return knotHash(input)
+}
+
+private fun reverseSubArray(
+    start: Int,
+    length: Int,
+    numbers: MutableList<Int>,
+) {
+    val subList = (start until start + length).map { numbers[it % numbers.size] }.reversed()
+    subList.forEachIndexed { index, value -> numbers[(start + index) % numbers.size] = value }
+}
+
+fun knotHash(input: String): String {
     val ranges = input.map { it.code }.toMutableList()
     ranges.addAll(listOf(17, 31, 73, 47, 23))
     val numbers = (0..255).toMutableList()
@@ -40,13 +53,4 @@ private fun partTwo(input: String): String {
 
     val denseHash = numbers.chunked(16) { it.reduce { acc, value -> acc xor value } }
     return denseHash.joinToString("") { it.toString(16).padStart(2, '0') }
-}
-
-private fun reverseSubArray(
-    start: Int,
-    length: Int,
-    numbers: MutableList<Int>,
-) {
-    val subList = (start until start + length).map { numbers[it % numbers.size] }.reversed()
-    subList.forEachIndexed { index, value -> numbers[(start + index) % numbers.size] = value }
 }
