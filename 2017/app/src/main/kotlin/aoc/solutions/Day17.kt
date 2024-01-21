@@ -19,5 +19,16 @@ private fun partOne(steps: Int): Int {
 }
 
 private fun partTwo(steps: Int): Int {
-    return 0
+    var curl = 1
+    var pos = 0
+    var out = 0
+    (0..50_000_000).forEach {
+        val new = ((pos + steps) % curl) + 1
+        if (new == 1) {
+            out = it + 1
+        }
+        pos = new
+        curl += 1
+    }
+    return out
 }
