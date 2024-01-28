@@ -9,8 +9,8 @@ impl FileLoader {
 
     pub fn read_lines(&self) -> Vec<String> {
         let contents = std::fs::read_to_string(&self.file_name)
-            .expect(format!("Could not read file {}", self.file_name).as_str());
+            .unwrap_or_else(|_| panic!("Could not read file {}", self.file_name));
 
-        contents.split("\n").map(|s| String::from(s)).collect()
+        contents.split('\n').map(String::from).collect()
     }
 }

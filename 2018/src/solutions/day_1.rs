@@ -14,7 +14,7 @@ fn part_one(input: Vec<String>) -> i32 {
         .iter()
         .map(|s| {
             s.parse::<i32>()
-                .expect(format!("Could not convert {} to int", s).as_str())
+                .unwrap_or_else(|_| panic!("Could not convert {} to int", s))
         })
         .sum()
 }
@@ -26,7 +26,7 @@ fn part_two(input: Vec<String>) -> i32 {
         .iter()
         .map(|s| {
             s.parse::<i32>()
-                .expect(format!("Could not convert {} to int", s).as_str())
+                .unwrap_or_else(|_| panic!("Could not convert {} to int", s))
         })
         .cycle()
     {
