@@ -4,18 +4,37 @@ use regex::Regex;
 
 use crate::utils::file_loader::FileLoader;
 
-const TEST_INPUT: &str = r#"#1 @ 1,3: 4x4
-#2 @ 3,1: 4x4
-#3 @ 5,5: 2x2"#;
-
 pub fn solve_day_three() {
     let input = FileLoader::new("./inputs/day3.txt".into()).read_lines();
-    // let input: Vec<String> = TEST_INPUT.split('\n').map(String::from).collect();
     println!("Day 3 part 1: {}", part_one(input.clone()));
     println!("Day 3 part 2: {}", part_two(input))
 }
 
 fn part_one(input: Vec<String>) -> i32 {
+    let (_, points) = parse(input);
+    points.values().filter(|v| **v > 1).count() as i32
+}
+
+fn part_two(input: Vec<String>) -> i32 {
+    // What is the ID of the only claim that doesn't overlap?
+    let (claims, points) = parse(input);
+    claims
+        .iter()
+        .find(|claim| {
+            for x in claim.position.0..claim.position.0 + claim.size.0 {
+                for y in claim.position.1..claim.position.1 + claim.size.1 {
+                    if points.get(&(x, y)).unwrap() > &1 {
+                        return false;
+                    }
+                }
+            }
+            true
+        })
+        .unwrap()
+        .id as i32
+}
+
+fn parse(input: Vec<String>) -> (Vec<Claim>, HashMap<(u16, u16), u16>) {
     let re = Regex::new(r"(\d+)").unwrap();
     let claims = input
         .iter()
@@ -42,28 +61,7 @@ fn part_one(input: Vec<String>) -> i32 {
         }
     });
 
-    // print_map(points.clone());
-
-    points.values().filter(|v| **v > 1).count() as i32
-}
-
-fn print_map(points: HashMap<(u16, u16), u16>) {
-    let mut map = vec![vec!['.'; 1000]; 1000];
-    points.iter().for_each(|(point, count)| {
-        map[point.0 as usize][point.1 as usize] = match count {
-            1 => '.',
-            _ => 'X',
-        }
-    });
-
-    map.iter().for_each(|row| {
-        row.iter().for_each(|c| print!("{}", c));
-        println!()
-    });
-}
-
-fn part_two(input: Vec<String>) -> i32 {
-    0
+    (claims, points)
 }
 
 #[derive(Debug)]
