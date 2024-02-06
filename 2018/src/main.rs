@@ -13,5 +13,6 @@ fn main() {
     // solutions::solve_day_eight();
     // solutions::solve_day_nine();
     // solutions::solve_day_ten();
-    solutions::solve_day_eleven();
+    // solutions::solve_day_eleven();
+    solutions::solve_day_twelve();
 }
