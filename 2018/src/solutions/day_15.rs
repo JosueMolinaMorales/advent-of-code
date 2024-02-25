@@ -68,12 +68,7 @@ fn solve(
         match step(&mut units, &walls, damage, elf_deaths_allowed) {
             Ok(true) => {}
             Ok(false) => {
-                println!(
-                    "Elf count: {}",
-                    units.iter().filter(|u| u.team == Team::Elf).count()
-                );
-                println!("Rounds: {}", rounds);
-                return Some(units.iter().map(|u| u.hp).filter(|hp| *hp > 0).sum::<i64>() * rounds);
+                return Some(total_hp(&units) * rounds);
             }
             Err(_) => {
                 return None;
@@ -88,7 +83,6 @@ fn part_two(lines: &Vec<String>) -> i64 {
     let mut damage = 4;
     damage_map.insert(Team::Goblin, 3);
     loop {
-        println!("Trying damage: {}", damage);
         damage_map.insert(Team::Elf, damage);
         match solve(lines, false, &damage_map) {
             Some(result) => {
@@ -110,6 +104,13 @@ fn part_one(lines: &Vec<String>) -> i64 {
     .unwrap()
 }
 
+fn total_hp(units: &Vec<Unit>) -> i64 {
+    units
+        .iter()
+        .filter_map(|u| if u.hp > 0 { Some(u.hp) } else { None })
+        .sum()
+}
+
 fn step(
     units: &mut Vec<Unit>,
     walls: &HashSet<Point>,
@@ -119,28 +120,29 @@ fn step(
     // Sort the units by position in reading order
     units.sort_by(|a, b| a.pos.cmp(&b.pos));
     for i in 0..units.len() {
-        let unit = units[i].clone();
-        if unit.hp <= 0 {
+        if units[i].hp <= 0 {
             continue;
         }
-        match get_move(&unit, &units, &walls) {
+        match get_move(&units[i], &units, &walls) {
             Some(new_pos) => units[i].pos = new_pos,
             None => return Ok(false),
         }
 
-        let unit = units[i].clone();
-        let attack = get_attack(&unit, &units);
-        if let Some(target) = attack {
-            let target = units.iter_mut().find(|u| u.pos == target.pos).unwrap();
+        let attack = get_attack(&units[i], &units);
+        if let Some(t) = attack {
+            let unit = units[i].clone();
+            let target = units
+                .iter_mut()
+                .find(|u| u.pos == t.pos && u.hp == t.hp)
+                .unwrap();
+
             target.hp -= damage[&unit.team] as i64;
             if target.hp <= 0 {
                 if target.team == Team::Elf && !elf_deaths_allowed {
-                    println!("Elf died");
                     return Err("Elf died".into());
                 }
             }
         }
-        // println!();
     }
     Ok(true)
 }
@@ -148,10 +150,21 @@ fn step(
 fn get_attack(unit: &Unit, units: &Vec<Unit>) -> Option<Unit> {
     let units = units
         .iter()
-        .filter(|u| u.team != unit.team && u.hp > 0 && u.pos.distance(&unit.pos) == 1)
-        .cloned();
+        .filter(|u| u.team != unit.team && u.hp > 0 && unit.pos.distance(&u.pos) == 1)
+        .map(|u| u.clone())
+        .collect::<Vec<_>>();
 
-    units.min_by_key(|u| (u.hp, u.pos.clone()))
+    let mut min_hp = i64::MAX;
+    units.iter().for_each(|u| {
+        if u.hp < min_hp {
+            min_hp = u.hp;
+        }
+    });
+    units
+        .iter()
+        .filter(|u| u.hp == min_hp)
+        .cloned()
+        .min_by(|a, b| a.pos.cmp(&b.pos))
 }
 
 fn get_move(unit: &Unit, units: &Vec<Unit>, walls: &HashSet<Point>) -> Option<Point> {
@@ -169,12 +182,10 @@ fn get_move(unit: &Unit, units: &Vec<Unit>, walls: &HashSet<Point>) -> Option<Po
         .difference(&occupied)
         .cloned()
         .collect::<HashSet<_>>();
-    // println!("Targets in range: {:?}", in_range);
     let target = choose_target(&unit.pos, &in_range, &occupied);
     if target.is_none() {
         return Some(unit.pos.clone());
     }
-    // println!("Target: {:?}", target);
     choose_move(&unit.pos, &target.unwrap(), &occupied)
 }
 
@@ -278,9 +289,34 @@ fn get_occupied(unit: &Unit, units: &Vec<Unit>, walls: &HashSet<Point>) -> HashS
         }
     }
 
-    for w in walls.iter() {
-        occupied.insert(w.clone());
+    occupied.union(walls).cloned().collect()
+}
+
+fn print_map(units: &Vec<Unit>, walls: &HashSet<Point>) {
+    let mut map = vec![];
+    for u in units.iter() {
+        if u.hp > 0 {
+            map.push((u.pos.clone(), u.team));
+        }
     }
 
-    occupied
+    let max_x = map.iter().map(|(p, _)| p.x).max().unwrap();
+    let max_y = map.iter().map(|(p, _)| p.y).max().unwrap();
+    for x in 0..=max_x {
+        for y in 0..=max_y {
+            let pos = Point::new(x, y);
+            let unit = map.iter().find(|(p, _)| p == &pos);
+            if let Some((_, team)) = unit {
+                match team {
+                    Team::Elf => print!("E"),
+                    Team::Goblin => print!("G"),
+                }
+            } else if walls.contains(&pos) {
+                print!("#");
+            } else {
+                print!(".");
+            }
+        }
+        println!();
+    }
 }
