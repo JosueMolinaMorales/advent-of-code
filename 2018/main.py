@@ -154,7 +154,8 @@ class Model:
         return '\n'.join(rows) + '\n'
 
 
-lines = list(fileinput.input())
+with open("./inputs/day15.txt") as f:
+    lines = f.readlines()
 
 # part 1
 rounds, hp = Model(lines).run()
@@ -163,6 +164,7 @@ print(rounds * hp)
 # part 2
 for elf_attack in count(4):
     try:
+        print("Trying elf attack", elf_attack)
         rounds, hp = Model(lines, elf_attack).run()
         print(rounds * hp)
         break
