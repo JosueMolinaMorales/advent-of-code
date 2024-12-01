@@ -25,10 +25,11 @@ func Solve_day_1() {
 func setup(rawLists string) (leftList []int, rightList []int) {
 	// Split the lists into two
 	for _, locations := range strings.Split(rawLists, "\n") {
-		l := strings.Split(locations, "   ")
-		l[0] = strings.Trim(l[0], " ")
-		l[1] = strings.Trim(l[1], " ")
+		if locations == "" {
+			continue
+		}
 
+		l := strings.Split(locations, "   ")
 		leftLocation, err := strconv.Atoi(l[0])
 		if err != nil {
 			panic(err)
@@ -57,8 +58,7 @@ func solve_part_one(rawLists string) int {
 	res := 0
 
 	for i := 0; i < n; i++ {
-		dif := leftList[i] - rightList[i]
-		res += int(math.Abs(float64(dif)))
+		res += int(math.Abs(float64(leftList[i] - rightList[i])))
 	}
 
 	return res
