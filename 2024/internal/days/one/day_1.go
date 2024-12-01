@@ -69,11 +69,7 @@ func solve_part_two(rawLists string) int {
 
 	rep := make(map[int]int)
 	for _, loc := range rightList {
-		if rep[loc] == 0 {
-			rep[loc] = 1
-		} else {
-			rep[loc] += 1
-		}
+		rep[loc] += 1
 	}
 
 	res := 0
