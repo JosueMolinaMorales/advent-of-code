@@ -10,15 +10,15 @@ import (
 	"github.com/JosueMolinaMorales/aoc/2024/internal/util"
 )
 
-func Solve_day_1() {
+func SolveDay1() {
 	rawLists, err := util.LoadFileAsString("./inputs/day_1.txt")
 	if err != nil {
 		panic(err)
 	}
 
-	res := solve_part_one(rawLists)
+	res := solvePartOne(rawLists)
 	fmt.Println("Day 1 Part 1: ", res)
-	res = solve_part_two(rawLists)
+	res = solvePartTwo(rawLists)
 	fmt.Println("Day 1 Part 2: ", res)
 }
 
@@ -47,7 +47,7 @@ func setup(rawLists string) (leftList []int, rightList []int) {
 	return leftList, rightList
 }
 
-func solve_part_one(rawLists string) int {
+func solvePartOne(rawLists string) int {
 	leftList, rightList := setup(rawLists)
 	// Sort both lists
 	slices.Sort(leftList)
@@ -64,7 +64,7 @@ func solve_part_one(rawLists string) int {
 	return res
 }
 
-func solve_part_two(rawLists string) int {
+func solvePartTwo(rawLists string) int {
 	leftList, rightList := setup(rawLists)
 
 	rep := make(map[int]int)
