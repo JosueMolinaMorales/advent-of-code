@@ -22,12 +22,15 @@ func solvePartOne() int {
 	// Scan the memory, needs to match: mul(xxx,xxx)
 	// where xxx are 1-3 digits
 	res := 0
-	for i, ch := range memory {
-		if ch == 'm' {
+	i := 0
+	for i < len(memory) {
+		if nextWord(memory, i, "mul(") {
+			i += len("mul(")
 			if isValid, ans := isValidMul(memory, i); isValid {
 				res += ans
 			}
 		}
+		i += 1
 	}
 	return res
 }
@@ -42,6 +45,7 @@ func solvePartTwo() int {
 	i := 0
 	for i < len(memory) {
 		if nextWord(memory, i, "mul(") && mulEnabled {
+			i += len("mul(")
 			if isValid, ans := isValidMul(memory, i); isValid {
 				res += ans
 			}
@@ -73,36 +77,22 @@ func nextWord(memory string, i int, word string) bool {
 }
 
 func isValidMul(memory string, i int) (bool, int) {
-	// Next is 'u'
-	if !next(memory, i+1, 'u') {
-		return false, -1
-	}
-	// Next is 'l'
-	if !next(memory, i+2, 'l') {
-		return false, -1
-	}
-	// Next is '('
-	if !next(memory, i+3, '(') {
-		return false, -1
-	}
 	// Next is 1-3 digits
-	a, al := nextDigits(memory, i+4)
+	a, al := nextDigits(memory, i)
 	if a < 0 {
 		return false, -1
 	}
 	// Next is ','
-	// TODO: figure out what to add to i
-	if !next(memory, i+al+4, ',') {
+	if !next(memory, i+al, ',') {
 		return false, -1
 	}
 	// Next is 1-3 digits
-	b, bl := nextDigits(memory, i+al+5)
+	b, bl := nextDigits(memory, i+al+1)
 	if b < 0 {
 		return false, -1
 	}
 	// Next is ')'
-	// TODO: figure out what to add to i
-	if !next(memory, i+al+bl+5, ')') {
+	if !next(memory, i+al+bl+1, ')') {
 		return false, -1
 	}
 
@@ -110,12 +100,10 @@ func isValidMul(memory string, i int) (bool, int) {
 }
 
 func next(memory string, i int, char rune) bool {
-	// log.Printf("[DEBUG] LOOKING AT INDEX: %d for CHAR: %c", i, char)
 	return rune(memory[i]) == char
 }
 
 func nextDigits(memory string, i int) (int, int) {
-	// log.Printf("[DEBUG] LOOKING FOR DIGITS START AT INDEX: %d", i)
 	// Digits can be 1-3 characters long
 	digitStr := ""
 	for j := 0; j < 3; j++ {
@@ -126,7 +114,6 @@ func nextDigits(memory string, i int) (int, int) {
 			break
 		}
 	}
-	// log.Printf("Digit string found: %s", digitStr)
 	digits, err := strconv.Atoi(digitStr)
 	if err != nil {
 		return -1, 0
