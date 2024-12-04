@@ -9,9 +9,9 @@ import (
 
 func SolveDay4() {
 	res := solvePartOne()
-	fmt.Println(res)
+	fmt.Println("Day 4 Part 1: ", res)
 	res = solvePartTwo()
-	fmt.Println(res)
+	fmt.Println("Day 4 Part 2: ", res)
 }
 
 func setup() [][]string {
