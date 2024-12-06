@@ -21,10 +21,6 @@ func NewGuard(dir types.Direction, loc types.Vector) Guard {
 	}
 }
 
-func (g *Guard) CopyLocation() *types.Vector {
-	return types.NewVector(g.Location.X, g.Location.Y)
-}
-
 func SolveDay6() {
 	fmt.Println("Day 6 Part 1: ", solvePartOne())
 	fmt.Println("Day 6 Part 2: ", solvePartTwo())
@@ -64,28 +60,28 @@ func setup() (Guard, *hashset.Set, int, int) {
 	return guard, blocks, xBound, yBound
 }
 
-func findPaths(g Guard, blocks *hashset.Set, xBound, yBound int, findCycle bool) (*hashset.Set, *hashset.Set, bool) {
+func findPaths(g Guard, blocks *hashset.Set, xBound, yBound int, findCycle bool) (*hashset.Set, bool) {
 	visited := hashset.New()
 	path := hashset.New()
 
 	for {
 		state := Guard{
-			Location:  *g.CopyLocation(),
+			Location:  g.Location,
 			Direction: g.Direction,
 		}
 
 		// Stop if guard's location is off the map
 		if g.Location.X < 0 || g.Location.X >= xBound || g.Location.Y < 0 || g.Location.Y >= yBound {
-			return visited, path, false
+			return path, false
 		}
 
 		if findCycle && visited.Contains(state) {
 			// Found a cycle
-			return visited, path, true
+			return path, true
 		}
 
 		visited.Add(state)
-		path.Add(*g.CopyLocation())
+		path.Add(g.Location)
 
 		// Move the guard
 		g = moveGuard(g, blocks)
@@ -94,21 +90,21 @@ func findPaths(g Guard, blocks *hashset.Set, xBound, yBound int, findCycle bool)
 
 func solvePartOne() int {
 	guard, blocks, xBound, yBound := setup()
-	_, path, _ := findPaths(guard, blocks, xBound, yBound, false)
+	path, _ := findPaths(guard, blocks, xBound, yBound, false)
 	return path.Size()
 }
 
 func solvePartTwo() int {
 	guard, blocks, xBound, yBound := setup()
 
-	visited, _, _ := findPaths(guard, blocks, xBound, yBound, false)
-	visited.Remove(guard.Location)
+	path, _ := findPaths(guard, blocks, xBound, yBound, false)
+	path.Remove(guard.Location)
 
 	attempted := hashset.New()
 	cycleCount := 0
 
-	for _, item := range visited.Values() {
-		block := item.(Guard).Location
+	for _, item := range path.Values() {
+		block := item.(types.Vector)
 		if attempted.Contains(block) {
 			continue
 		}
@@ -116,7 +112,7 @@ func solvePartTwo() int {
 		attempted.Add(block)
 		blocks.Add(block)
 
-		_, _, found := findPaths(guard, blocks, xBound, yBound, true)
+		_, found := findPaths(guard, blocks, xBound, yBound, true)
 		if found {
 			cycleCount++
 		}
