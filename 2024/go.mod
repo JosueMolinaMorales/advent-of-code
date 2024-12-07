@@ -1,5 +1,7 @@
 module github.com/JosueMolinaMorales/aoc/2024
 
-go 1.21.4
+go 1.22
 
-require github.com/emirpasic/gods v1.18.1 // indirect
+toolchain go1.22.10
+
+require github.com/emirpasic/gods v1.18.1
