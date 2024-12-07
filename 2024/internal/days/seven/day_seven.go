@@ -8,8 +8,8 @@ import (
 )
 
 func SolveDay7() {
-	fmt.Println(solve([]string{"+", "*"}))
-	fmt.Println(solve([]string{"+", "*", "||"}))
+	fmt.Println("Day 7 Part 1: ", solve([]string{"+", "*"}))
+	fmt.Println("Day 7 Part 2: ", solve([]string{"+", "*", "||"}))
 }
 
 func solve(operators []string) int {
