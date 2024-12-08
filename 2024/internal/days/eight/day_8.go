@@ -20,52 +20,50 @@ func setup() ([][]string, map[string][]types.Vector) {
 		panic(err)
 	}
 
-	grid := make([][]string, 0)
+	grid := [][]string{}
 	frequencies := make(map[string][]types.Vector)
-	for i, line := range strings.Split(rawMap, "\n") {
-		row := make([]string, 0)
-		for j, col := range strings.Split(line, "") {
-			if col != "." {
-				if frequencies[col] == nil {
-					frequencies[col] = make([]types.Vector, 0)
-				}
-				frequencies[col] = append(frequencies[col], *types.NewVector(i, j))
-			}
-			row = append(row, col)
-		}
-		grid = append(grid, row)
-	}
 
+	for i, line := range strings.Split(rawMap, "\n") {
+		row := strings.Split(line, "")
+		grid = append(grid, row)
+
+		for j, col := range row {
+			if col == "." {
+				continue
+			}
+			frequencies[col] = append(frequencies[col], *types.NewVector(i, j))
+		}
+	}
 	return grid, frequencies
 }
 
-func isInBounds(dx, dy, xBound, yBound int) bool {
-	return dx >= 0 && dx < xBound && dy >= 0 && dy < yBound
+func isInBounds(x, y, xBound, yBound int) bool {
+	return x >= 0 && x < xBound && y >= 0 && y < yBound
 }
 
 func solve(part2 bool) int {
 	grid, freqs := setup()
 	antinodes := hashset.New()
-	for _, v := range freqs {
-		for _, point := range v {
-			for _, otherPoint := range v {
+
+	for _, points := range freqs {
+		for _, point := range points {
+			for _, otherPoint := range points {
 				if point == otherPoint {
 					continue
 				}
 
 				dx, dy := point.X-otherPoint.X, point.Y-otherPoint.Y
+				x, y := point.X, point.Y
 
 				if part2 {
-					x, y := point.X, point.Y
-					for {
-						if !isInBounds(x, y, len(grid), len(grid[0])) {
-							break
-						}
+					// Follow the vector until out of bounds
+					for isInBounds(x, y, len(grid), len(grid[0])) {
 						antinodes.Add(*types.NewVector(x, y))
 						x, y = x+dx, y+dy
 					}
 				} else {
-					x, y := point.X+dx, point.Y+dy
+					// Single step in the direction of the vector
+					x, y = x+dx, y+dy
 					if isInBounds(x, y, len(grid), len(grid[0])) {
 						antinodes.Add(*types.NewVector(x, y))
 					}
