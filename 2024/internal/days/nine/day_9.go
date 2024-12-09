@@ -13,29 +13,26 @@ func SolveDay9() {
 	fmt.Println(solvePartTwo())
 }
 
+// setup initializes the disk space representation based on the input file
 func setup() []string {
 	rawDiskMap, err := util.LoadFileAsString("./inputs/day_9.txt")
 	if err != nil {
 		panic(err)
 	}
 
-	diskmap := make([]int, 0)
-	for _, chr := range strings.Split(rawDiskMap, "") {
-		diskmap = append(diskmap, util.ToInt(chr))
-	}
-
-	space := make([]string, 0)
+	space := []string{}
 	id := 0
-	for i, ch := range diskmap {
-		if (i % 2) == 0 {
-			// Even is files
-			for j := 0; j < ch; j++ {
+
+	for i, chr := range strings.Split(rawDiskMap, "") {
+		count := util.ToInt(chr)
+
+		if i%2 == 0 { // Even indices represent files
+			for j := 0; j < count; j++ {
 				space = append(space, strconv.Itoa(id))
 			}
 			id++
-		} else {
-			// Odd is free space
-			for j := 0; j < ch; j++ {
+		} else { // Odd indices represent free space
+			for j := 0; j < count; j++ {
 				space = append(space, ".")
 			}
 		}
@@ -44,65 +41,61 @@ func setup() []string {
 	return space
 }
 
+// solvePartOne solves the first part of the puzzle
 func solvePartOne() int {
 	space := setup()
-	// Two pointers, one pointing to free space, the next pointing to the right most
-	// file to be moved
 	freeSpacePtr, filePtr := 0, len(space)-1
 
 	for freeSpacePtr < filePtr {
-		// Check if the freePtr is on a free space
-		if space[freeSpacePtr] != "." {
+		// Move pointers to valid positions
+		for freeSpacePtr < filePtr && space[freeSpacePtr] != "." {
 			freeSpacePtr++
-			continue
 		}
-		if space[filePtr] == "." {
+		for freeSpacePtr < filePtr && space[filePtr] == "." {
 			filePtr--
-			continue
 		}
-		// free ptr on a free space
-		// now swap
-		space[freeSpacePtr] = space[filePtr]
-		space[filePtr] = "."
 
-		// Increment/decrement
-		freeSpacePtr++
-		filePtr--
+		// Swap if valid positions are found
+		if freeSpacePtr < filePtr {
+			space[freeSpacePtr], space[filePtr] = space[filePtr], "."
+			freeSpacePtr++
+			filePtr--
+		}
 	}
 
 	return calcChecksum(space)
 }
 
+// solvePartTwo solves the second part of the puzzle
 func solvePartTwo() int {
 	space := setup()
 	freeSpacePtr, filePtr := 0, len(space)-1
+
 	for filePtr > 0 {
-		// Check if the freePtr is on a free space
-		if space[freeSpacePtr] != "." {
+		// Move pointers to valid positions
+		for freeSpacePtr < filePtr && space[freeSpacePtr] != "." {
 			freeSpacePtr++
-			continue
 		}
-		if space[filePtr] == "." {
+		for filePtr > 0 && space[filePtr] == "." {
 			filePtr--
-			continue
 		}
 
-		// Get window size of file ptr
+		// Determine the size of the file block
 		size := 0
-		j := filePtr
-		for j > 0 && space[j] == space[filePtr] {
-			size += 1
-			j--
+		currFilePtr := filePtr
+		for currFilePtr > 0 && space[currFilePtr] == space[filePtr] {
+			size++
+			currFilePtr--
 		}
 
-		// Find starting position of free space window
+		// Check if a free space window can fit the file block
 		canFit := false
 		for freeSpacePtr < filePtr {
 			windowSize := 0
-			j := freeSpacePtr
-			for space[j] == "." {
+			currFreePtr := freeSpacePtr
+			for currFreePtr < len(space) && space[currFreePtr] == "." {
 				windowSize++
-				j++
+				currFreePtr++
 			}
 			if windowSize >= size {
 				canFit = true
@@ -111,24 +104,30 @@ func solvePartTwo() int {
 			freeSpacePtr++
 		}
 
+		// If no fitting space, move the file pointer back
 		if !canFit {
 			freeSpacePtr = 0
-			filePtr = filePtr - size
+			filePtr -= size
 			continue
 		}
-		// Swap
+
+		// Move the file block into the free space window
 		for size > 0 {
 			space[freeSpacePtr] = space[filePtr]
 			space[filePtr] = "."
 			freeSpacePtr++
-			size--
 			filePtr--
+			size--
 		}
+
+		// Reset the free space pointer for the next iteration
 		freeSpacePtr = 0
 	}
+
 	return calcChecksum(space)
 }
 
+// calcChecksum calculates the checksum for the final state of the space
 func calcChecksum(space []string) int {
 	checksum := 0
 	for i, n := range space {
@@ -137,6 +136,5 @@ func calcChecksum(space []string) int {
 		}
 		checksum += i * util.ToInt(n)
 	}
-
 	return checksum
 }
