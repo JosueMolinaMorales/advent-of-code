@@ -9,8 +9,8 @@ import (
 )
 
 func SolveDay9() {
-	fmt.Println(solvePartOne())
-	fmt.Println(solvePartTwo())
+	fmt.Println("Day 9 Part 1: ", solvePartOne())
+	fmt.Println("Day 9 Part 1: ", solvePartTwo())
 }
 
 // setup initializes the disk space representation based on the input file
