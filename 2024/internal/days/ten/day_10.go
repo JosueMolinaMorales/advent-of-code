@@ -10,11 +10,11 @@ import (
 )
 
 func SolveDay10() {
-	fmt.Println("Day 10 Part 1: ", solvePartOne())
-	fmt.Println("Day 10 Part 2: ", solvePartTwo())
+	fmt.Println("Day 10 Part 1: ", solve(false))
+	fmt.Println("Day 10 Part 2: ", solve(true))
 }
 
-func setup() ([][]int, hashset.Set, hashset.Set) {
+func setup() ([][]int, hashset.Set) {
 	rawMap, err := util.LoadFileAsString("./inputs/day_10.txt")
 	if err != nil {
 		panic(rawMap)
@@ -22,7 +22,6 @@ func setup() ([][]int, hashset.Set, hashset.Set) {
 
 	topMap := [][]int{}
 	startingPoints := hashset.New()
-	peaks := hashset.New()
 	for i, line := range strings.Split(rawMap, "\n") {
 		row := []int{}
 		for j, s := range strings.Split(line, "") {
@@ -30,61 +29,28 @@ func setup() ([][]int, hashset.Set, hashset.Set) {
 			if n == 0 {
 				startingPoints.Add(*types.NewVector(i, j))
 			}
-			if n == 9 {
-				peaks.Add(*types.NewVector(i, j))
-			}
+
 			row = append(row, n)
 		}
 		topMap = append(topMap, row)
 	}
 
-	return topMap, *startingPoints, *peaks
+	return topMap, *startingPoints
 }
 
-func solvePartOne() int {
-	topMap, startingPoints, _ := setup()
+func solve(findAllPaths bool) int {
+	topMap, startingPoints := setup()
 
 	// Use DFS to find path from 0 - 9
 	count := 0
 	for _, point := range startingPoints.Values() {
 		p := point.(types.Vector)
-		count += search(p, *hashset.New(), topMap)
+		count += search(p, findAllPaths, *hashset.New(), topMap)
 	}
 	return count
 }
 
-func solvePartTwo() int {
-	topMap, startPoints, peaks := setup()
-
-	// Find all paths from a single point 0-9
-	count := 0
-	for _, point := range startPoints.Values() {
-		po := point.(types.Vector)
-		for _, peak := range peaks.Values() {
-			pe := peak.(types.Vector)
-			count += searchPaths(po, pe, *hashset.New(), topMap)
-		}
-	}
-
-	return count
-}
-
-func searchPaths(curr_pos types.Vector, end types.Vector, visited hashset.Set, topMap [][]int) int {
-	// Check to see if the curr_point is 9
-	if curr_pos == end {
-		return 1
-	}
-
-	// Find all adjacent points
-	found := 0
-	for _, adjacent := range adj(curr_pos, topMap) {
-		found += searchPaths(adjacent, end, visited, topMap)
-	}
-
-	return found
-}
-
-func search(curr_pos types.Vector, visited hashset.Set, topMap [][]int) int {
+func search(curr_pos types.Vector, findAllPaths bool, visited hashset.Set, topMap [][]int) int {
 	// Mark current position on visited
 	visited.Add(curr_pos)
 
@@ -96,8 +62,9 @@ func search(curr_pos types.Vector, visited hashset.Set, topMap [][]int) int {
 	// Find all adjacent points
 	found := 0
 	for _, adjacent := range adj(curr_pos, topMap) {
-		if !visited.Contains(adjacent) {
-			found += search(adjacent, visited, topMap)
+		// Dont continue if we have visited unless we are attempting to find all paths
+		if !visited.Contains(adjacent) || findAllPaths {
+			found += search(adjacent, findAllPaths, visited, topMap)
 		}
 	}
 
