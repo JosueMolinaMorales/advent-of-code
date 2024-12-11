@@ -10,8 +10,8 @@ import (
 )
 
 func SolveDay11() {
-	fmt.Println(solve(25))
-	fmt.Println(solve(75))
+	fmt.Println("Day 11 Part 1: ", solve(25))
+	fmt.Println("Day 11 Part 2: ", solve(75))
 }
 
 func setup() []int {
