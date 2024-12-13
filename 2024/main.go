@@ -1,8 +1,6 @@
 package main
 
-import (
-	"github.com/JosueMolinaMorales/aoc/2024/internal/thirteen"
-)
+import "github.com/JosueMolinaMorales/aoc/2024/internal/days/thirteen"
 
 func main() {
 	// one.Solve_day_1()
