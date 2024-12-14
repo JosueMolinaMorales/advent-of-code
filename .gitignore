@@ -13,3 +13,4 @@
 **/input/**
 **/inputs/**
 .DS_Store
+*.txt
