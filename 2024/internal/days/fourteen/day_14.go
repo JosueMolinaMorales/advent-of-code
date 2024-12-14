@@ -18,8 +18,8 @@ type Robot struct {
 }
 
 func SolveDay14() {
-	fmt.Println(solvePartOne())
-	fmt.Println(solvePartTwo())
+	fmt.Println("Day 14 Part 1: ", solvePartOne())
+	fmt.Println("Day 14 Part 2: ", solvePartTwo())
 }
 
 func setup() []Robot {
@@ -100,14 +100,14 @@ func solvePartTwo() int {
 	robots := setup()
 	seconds := 0
 
-	minEntropy := math.MaxInt
+	minScore := math.MaxInt
 	t := 0
 	for seconds < 10_000 {
 		moveRobots(&robots)
 
-		entropy := calcSafetyScore(robots)
-		if entropy < minEntropy {
-			minEntropy = entropy
+		score := calcSafetyScore(robots)
+		if score < minScore {
+			minScore = score
 			t = seconds + 1
 		}
 		seconds++
