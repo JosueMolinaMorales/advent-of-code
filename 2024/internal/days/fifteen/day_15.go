@@ -56,15 +56,7 @@ func solvePartOne() int {
 		}
 	}
 
-	res := 0
-	for i, row := range m {
-		for j, col := range row {
-			if col == "O" {
-				res += calcGPS(i, j)
-			}
-		}
-	}
-	return res
+	return calcGPS("O", m)
 }
 
 func solvePartTwo() int {
@@ -93,19 +85,19 @@ func solvePartTwo() int {
 		}
 	}
 
+	return calcGPS("[", newMap)
+}
+
+func calcGPS(cell string, m [][]string) int {
 	res := 0
-	for i, row := range newMap {
+	for i, row := range m {
 		for j, col := range row {
-			if col == "[" {
-				res += calcGPS(i, j)
+			if col == cell {
+				res += 100*i + j
 			}
 		}
 	}
 	return res
-}
-
-func calcGPS(x, y int) int {
-	return 100*x + y
 }
 
 func printMap(m [][]string, robot types.Vector) {
