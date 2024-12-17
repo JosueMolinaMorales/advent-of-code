@@ -3,11 +3,13 @@ package sixteen
 import (
 	"fmt"
 	"math"
+	"slices"
 	"strings"
 
 	"github.com/JosueMolinaMorales/aoc/2024/internal/util"
 	"github.com/JosueMolinaMorales/aoc/2024/internal/util/types"
 	"github.com/emirpasic/gods/queues/priorityqueue"
+	"github.com/emirpasic/gods/sets/hashset"
 	"github.com/emirpasic/gods/utils"
 )
 
@@ -15,104 +17,80 @@ type State struct {
 	Cost     int
 	Facing   types.Direction
 	Position types.Vector
+	Path     []types.Vector
 }
 
 func SolveDay16() {
-	fmt.Println(solvePartOne())
+	start, end, grid := parseGrid("./inputs/day_16.txt")
+	fmt.Println("Day 16 Part 1: ", dijkstra(start, end, grid))
+	fmt.Println("Day 16 Part 2: ", dijkstraUniqueCells(start, end, grid))
 }
 
-func solvePartOne() int {
-	input, err := util.LoadFileAsString("./inputs/day_16.txt")
+func parseGrid(path string) (types.Vector, types.Vector, [][]string) {
+	input, err := util.LoadFileAsString(path)
 	if err != nil {
 		panic(err)
 	}
+
+	var start, end types.Vector
 	grid := [][]string{}
-	start := *types.NewVector()
-	end := *types.NewVector()
 
 	for i, line := range strings.Split(input, "\n") {
 		row := []string{}
 		for j, col := range strings.Split(line, "") {
 			if col == "S" {
-				start.X = i
-				start.Y = j
+				start = *types.NewVector(i, j)
 			}
 			if col == "E" {
-				end.X = i
-				end.Y = j
+				end = *types.NewVector(i, j)
 			}
 			row = append(row, col)
 		}
-
 		grid = append(grid, row)
 	}
-
-	return dijkstra(start, end, grid)
+	return start, end, grid
 }
 
-func dijkstra(start types.Vector, end types.Vector, g [][]string) int {
+func dijkstra(start, end types.Vector, grid [][]string) int {
 	dist := map[types.Vector]int{}
-
-	for i, row := range g {
+	for i, row := range grid {
 		for j, col := range row {
-			if col == "#" {
-				continue
+			if col != "#" {
+				dist[*types.NewVector(i, j)] = math.MaxInt
 			}
-			dist[*types.NewVector(i, j)] = math.MaxInt
 		}
 	}
-	q := priorityqueue.NewWith(func(a, b interface{}) int {
-		aCost := a.(State).Cost
-		bCost := a.(State).Cost
-		return -utils.IntComparator(aCost, bCost)
-	})
-	minCost := math.MaxInt
+
+	compareCosts := func(a, b interface{}) int {
+		return -utils.IntComparator(a.(State).Cost, b.(State).Cost)
+	}
+	q := priorityqueue.NewWith(compareCosts)
 
 	dist[start] = 0
-	q.Enqueue(State{
-		Cost:     0,
-		Position: start,
-		Facing:   types.DIRECTION_EAST,
-	})
+	q.Enqueue(State{Cost: 0, Position: start, Facing: types.DIRECTION_EAST})
+	minCost := math.MaxInt
 
 	for !q.Empty() {
-		s, _ := q.Dequeue()
-		p := s.(State)
-		if p.Position == end && p.Cost < minCost {
-			minCost = p.Cost
+		curr, _ := q.Dequeue()
+		state := curr.(State)
+
+		if state.Position == end {
+			minCost = min(minCost, state.Cost)
 			continue
 		}
 
-		if p.Cost > dist[p.Position] || p.Cost >= minCost {
+		if state.Cost > dist[state.Position] || state.Cost >= minCost {
 			continue
 		}
 
-		for _, neighbor := range adjacent(p.Position, g) {
-			cost := p.Cost
-			dx, dy := neighbor.X-p.Position.X, neighbor.Y-p.Position.Y
-			newDir := p.Facing
-			if dx == 0 && dy == 1 && p.Facing != types.DIRECTION_EAST {
-				// To the right
-				cost += 1000
-				newDir = types.DIRECTION_EAST
-			} else if dx == 0 && dy == -1 && p.Facing != types.DIRECTION_WEST {
-				cost += 1000
-				newDir = types.DIRECTION_WEST
-			} else if dx == -1 && dy == 0 && p.Facing != types.DIRECTION_NORTH {
-				cost += 1000
-				newDir = types.DIRECTION_NORTH
-			} else if dx == 1 && dy == 0 && p.Facing != types.DIRECTION_SOUTH {
-				cost += 1000
-				newDir = types.DIRECTION_SOUTH
-			}
-			cost += 1
-
-			if cost < dist[neighbor] {
-				dist[neighbor] = cost
+		for _, neighbor := range adjacent(state.Position, grid) {
+			newCost := calculateCost(state, neighbor)
+			if newCost < dist[neighbor] {
+				dist[neighbor] = newCost
 				q.Enqueue(State{
-					Cost:     cost,
-					Facing:   newDir,
+					Cost:     newCost,
 					Position: neighbor,
+					Facing:   determineDirection(state.Position, neighbor),
 				})
 			}
 		}
@@ -121,48 +99,111 @@ func dijkstra(start types.Vector, end types.Vector, g [][]string) int {
 	return minCost
 }
 
-func printMap(state State, m [][]string) {
-	for i, row := range m {
+func dijkstraUniqueCells(start, end types.Vector, grid [][]string) int {
+	dist := map[string]int{}
+	minCost := dijkstra(start, end, grid)
+
+	for i, row := range grid {
 		for j, col := range row {
-			if *types.NewVector(i, j) == state.Position {
-				switch state.Facing {
-				case types.DIRECTION_EAST:
-					fmt.Print(">")
-				case types.DIRECTION_NORTH:
-					fmt.Print("^")
-				case types.DIRECTION_SOUTH:
-					fmt.Print("v")
-				case types.DIRECTION_WEST:
-					fmt.Print("<")
+			if col != "#" {
+				for _, dir := range []types.Direction{types.DIRECTION_EAST, types.DIRECTION_NORTH, types.DIRECTION_SOUTH, types.DIRECTION_WEST} {
+					dist[toString(State{Position: *types.NewVector(i, j), Facing: dir})] = minCost
 				}
-			} else {
-				fmt.Print(col)
 			}
 		}
-		fmt.Println()
+	}
+
+	compareCosts := func(a, b interface{}) int {
+		return -utils.IntComparator(a.(State).Cost, b.(State).Cost)
+	}
+	q := priorityqueue.NewWith(compareCosts)
+	startState := State{Cost: 0, Position: start, Facing: types.DIRECTION_EAST}
+	q.Enqueue(startState)
+	dist[toString(startState)] = 0
+	uniquePoints := hashset.New()
+
+	for !q.Empty() {
+		curr, _ := q.Dequeue()
+		state := curr.(State)
+		state.Path = append(state.Path, state.Position)
+
+		if state.Cost > dist[toString(state)] || state.Cost > minCost {
+			continue
+		}
+
+		if state.Position == end && state.Cost == minCost {
+			for _, point := range state.Path {
+				uniquePoints.Add(point)
+			}
+			continue
+		}
+
+		for _, neighbor := range adjacent(state.Position, grid) {
+			newState := generateNextState(state, neighbor)
+			if newState.Cost <= dist[toString(newState)] {
+				dist[toString(newState)] = newState.Cost
+				q.Enqueue(newState)
+			}
+		}
+	}
+
+	return uniquePoints.Size()
+}
+
+func calculateCost(state State, neighbor types.Vector) int {
+	cost := state.Cost + 1
+	if state.Facing != determineDirection(state.Position, neighbor) {
+		cost += 1000
+	}
+	return cost
+}
+
+func generateNextState(state State, neighbor types.Vector) State {
+	newDir := determineDirection(state.Position, neighbor)
+	newCost := calculateCost(state, neighbor)
+	return State{
+		Cost:     newCost,
+		Position: neighbor,
+		Facing:   newDir,
+		Path:     slices.Clone(state.Path),
 	}
 }
 
-func adjacent(point types.Vector, m [][]string) []types.Vector {
-	directions := [][]int{
-		{0, 1}, // Right
+func determineDirection(from, to types.Vector) types.Direction {
+	switch {
+	case to.X == from.X && to.Y > from.Y:
+		return types.DIRECTION_EAST
+	case to.X == from.X && to.Y < from.Y:
+		return types.DIRECTION_WEST
+	case to.X < from.X:
+		return types.DIRECTION_NORTH
+	default:
+		return types.DIRECTION_SOUTH
+	}
+}
 
-		{1, 0},  // Up
-		{-1, 0}, // Down
-		{0, -1}, // Left
+func adjacent(point types.Vector, grid [][]string) []types.Vector {
+	directions := []types.Vector{
+		{X: 0, Y: 1}, {X: 1, Y: 0}, {X: -1, Y: 0}, {X: 0, Y: -1},
 	}
 
-	adj := []types.Vector{}
+	neighbors := []types.Vector{}
 	for _, dir := range directions {
-		dx, dy := point.X+dir[0], point.Y+dir[1]
-		if dx < 0 || dx >= len(m) || dy < 0 || dy >= len(m[0]) {
-			continue
+		x, y := point.X+dir.X, point.Y+dir.Y
+		if x >= 0 && x < len(grid) && y >= 0 && y < len(grid[0]) && grid[x][y] != "#" {
+			neighbors = append(neighbors, *types.NewVector(x, y))
 		}
-		if m[dx][dy] == "#" {
-			continue
-		}
-		adj = append(adj, *types.NewVector(dx, dy))
 	}
+	return neighbors
+}
 
-	return adj
+func toString(s State) string {
+	return fmt.Sprintf("%d,%d,%s", s.Position.X, s.Position.Y, s.Facing)
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
