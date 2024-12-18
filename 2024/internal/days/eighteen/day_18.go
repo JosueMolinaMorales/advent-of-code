@@ -64,15 +64,28 @@ func solvePartOne() int {
 func solvePartTwo() string {
 	coords, grid := setup()
 	found := types.Vector{}
-	for i := KB_FALLEN; i < len(coords); i++ {
-		block := coords[i]
-		// Add the block
-		grid[block.X][block.Y] = "#"
-		// Run bfs
+
+	left := float64(KB_FALLEN)
+	right := float64(len(coords))
+
+	for left < right {
+		m := int(math.Floor((left + right) / 2.0))
+		found = coords[m]
+		for i := KB_FALLEN; i < m; i++ {
+			block := coords[i]
+			// Add the block
+			grid[block.X][block.Y] = "#"
+		}
 		dist := bfs(START, END, grid)
 		if dist == math.MaxInt {
-			found = block
-			break
+			right = float64(m)
+		} else {
+			left = float64(m) + 1
+		}
+		for i := m; i > KB_FALLEN; i-- {
+			block := coords[i]
+			// Add the block
+			grid[block.X][block.Y] = "."
 		}
 	}
 
