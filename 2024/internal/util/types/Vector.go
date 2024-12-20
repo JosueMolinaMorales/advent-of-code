@@ -1,5 +1,7 @@
 package types
 
+import "fmt"
+
 type Vector struct {
 	X, Y int
 }
@@ -12,4 +14,8 @@ func NewVector(cords ...int) *Vector {
 		return &Vector{X: cords[0], Y: cords[1]}
 	}
 	return &Vector{X: 0, Y: 0}
+}
+
+func (v Vector) String() string {
+	return fmt.Sprintf("(%d, %d)", v.X, v.Y)
 }
