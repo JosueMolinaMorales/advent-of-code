@@ -1,6 +1,9 @@
 package types
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
 type Vector struct {
 	X, Y int
@@ -18,4 +21,8 @@ func NewVector(cords ...int) *Vector {
 
 func (v Vector) String() string {
 	return fmt.Sprintf("(%d, %d)", v.X, v.Y)
+}
+
+func (v Vector) ManhanttanDistance(o Vector) int {
+	return int(math.Abs(float64(v.X-o.X)) + math.Abs(float64(v.Y-o.Y)))
 }

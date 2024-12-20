@@ -3,7 +3,6 @@ package twenty
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/JosueMolinaMorales/aoc/2024/internal/util"
 	"github.com/JosueMolinaMorales/aoc/2024/internal/util/types"
@@ -13,10 +12,11 @@ import (
 )
 
 func SolveDayTwenty() {
-	fmt.Println(solvePartOne())
+	fmt.Println("Day 20 Part 1: ", race(2))
+	fmt.Println("Day 20 Part 2: ", race(20))
 }
 
-func solvePartOne() int {
+func setup() ([][]string, types.Vector, types.Vector) {
 	input, err := util.LoadFileAsString("./inputs/day_20.txt")
 	if err != nil {
 		panic(err)
@@ -39,158 +39,81 @@ func solvePartOne() int {
 		racetrack = append(racetrack, row)
 	}
 
-	fmt.Println(start)
-	fmt.Println(end)
+	return racetrack, start, end
+}
 
-	startTime := time.Now()
-	ogTime := regPathFind(start, end, racetrack)
-	fmt.Println("Time to find end path: ", time.Since(startTime))
-	fmt.Println("WITH og time: ", ogTime)
+func race(cheat int) int {
+	grid, start, end := setup()
+	path := regPathFind(start, end, grid)
 
-	time := raceToEnd(start, end, racetrack)
-	fmt.Println(time)
-	return time
-	// return 0
+	c := 0
+	save := 100
+	// Iterate through the first len(path)-save paths to find the cheat start
+	for i, p := range path[:len(path)-save] {
+		// jump ahead save steps and see if we can reach it by cheating
+		for j, q := range path[i+save:] {
+			if d := q.ManhanttanDistance(p); d <= cheat && d <= j {
+				c++
+			}
+		}
+	}
+	return c
 }
 
 type State struct {
-	Time       int
-	Pos        types.Vector
-	HasCheated bool
-	Cheat      types.Vector
-	Visited    hashset.Set
+	Time int
+	Pos  types.Vector
 }
 
-func regPathFind(start, end types.Vector, grid [][]string) int {
+func regPathFind(start, end types.Vector, grid [][]string) []types.Vector {
 	q := priorityqueue.NewWith(func(a, b interface{}) int {
 		aTime := a.(State).Time
 		bTime := b.(State).Time
 		return utils.IntComparator(aTime, bTime)
 	})
 	q.Enqueue(State{
-		Time:       0,
-		Pos:        start,
-		HasCheated: false,
-		Cheat:      types.Vector{},
+		Time: 0,
+		Pos:  start,
 	})
 	visited := hashset.New(start)
+	prev := map[types.Vector]types.Vector{}
 	for !q.Empty() {
 		p, _ := q.Dequeue()
 		state := p.(State)
 		if state.Pos == end {
-			return state.Time
+			break
 		}
 
-		neighbors, _ := adjacent(state, grid, &hashset.Set{})
-		for _, neighbor := range neighbors {
+		for _, neighbor := range adjacent(state.Pos, grid) {
 			if visited.Contains(neighbor) {
 				continue
 			}
 			visited.Add(neighbor)
+			prev[neighbor] = state.Pos
 			q.Enqueue(State{
-				Time:       state.Time + 1,
-				Pos:        neighbor,
-				Cheat:      state.Cheat,
-				HasCheated: state.HasCheated,
+				Time: state.Time + 1,
+				Pos:  neighbor,
 			})
 		}
 
-		// fmt.Println()
 	}
-	return -1
+
+	path := []types.Vector{end}
+	curr := end
+	for curr != start {
+		curr = prev[curr]
+		path = append(path, curr)
+	}
+
+	return path
 }
 
-func minPath(start, end types.Vector, enableCheats bool, grid [][]string, seenCheats *hashset.Set) State {
-	q := priorityqueue.NewWith(func(a, b interface{}) int {
-		aTime := a.(State).Time
-		bTime := b.(State).Time
-		return utils.IntComparator(aTime, bTime)
-	})
-	q.Enqueue(State{
-		Time:       0,
-		Pos:        start,
-		HasCheated: false,
-		Cheat:      types.Vector{},
-		Visited:    *hashset.New(start),
-	})
-	endState := State{}
-	visited := hashset.New(start)
-	for !q.Empty() {
-		p, _ := q.Dequeue()
-		state := p.(State)
-		if state.Pos == end {
-			return state
-		}
-
-		neighbors, cheats := adjacent(state, grid, seenCheats)
-		for _, neighbor := range neighbors {
-			if visited.Contains(neighbor) {
-				continue
-			}
-			visited.Add(neighbor)
-			q.Enqueue(State{
-				Time:       state.Time + 1,
-				Pos:        neighbor,
-				Cheat:      state.Cheat,
-				HasCheated: state.HasCheated,
-			})
-		}
-		if enableCheats {
-			for _, cheat := range cheats {
-				if visited.Contains(cheat) {
-					continue
-				}
-				visited.Add(cheat)
-
-				q.Enqueue(State{
-					Time:       state.Time + 1,
-					Pos:        cheat,
-					HasCheated: true,
-					Cheat:      cheat,
-				})
-			}
-		}
-		// fmt.Println()
-	}
-	return endState
-}
-
-func raceToEnd(start, end types.Vector, grid [][]string) int {
-	seenCheats := hashset.New()
-	saves := map[int]int{}
-	ogTime := minPath(start, end, false, grid, seenCheats).Time
-	fmt.Println("OG TIME: ", ogTime)
-	for i := 0; i < 10_000; i++ {
-		endState := minPath(start, end, true, grid, seenCheats)
-
-		saves[ogTime-endState.Time]++
-		seenCheats.Add(endState.Cheat)
-
-		// fmt.Println("Cheat was: ", endState.Cheat)
-	}
-
-	// How many cheats save at least 100
-	fmt.Println(saves)
-	// Print path
-
-	// printMap(grid, []types.Vector{})
-	count := 0
-	for k, v := range saves {
-		if k >= 100 {
-			count += v
-		}
-	}
-	return count
-}
-
-func adjacent(state State, grid [][]string, seenCheats *hashset.Set) ([]types.Vector, []types.Vector) {
+func adjacent(point types.Vector, grid [][]string) []types.Vector {
 	directions := []types.Vector{
 		{X: 0, Y: 1}, {X: 1, Y: 0}, {X: -1, Y: 0}, {X: 0, Y: -1},
 	}
 
 	neighbors := []types.Vector{}
-	cheats := []types.Vector{}
-	point := state.Pos
 	for _, dir := range directions {
 		x, y := point.X+dir.X, point.Y+dir.Y
 		n := *types.NewVector(x, y)
@@ -200,11 +123,8 @@ func adjacent(state State, grid [][]string, seenCheats *hashset.Set) ([]types.Ve
 		if grid[x][y] != "#" {
 			neighbors = append(neighbors, n)
 		}
-		if grid[x][y] == "#" && !state.HasCheated && !seenCheats.Contains(n) {
-			cheats = append(cheats, n)
-		}
 	}
-	return neighbors, cheats
+	return neighbors
 }
 
 func printMap(m [][]string, path []types.Vector) {
