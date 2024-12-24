@@ -6,9 +6,9 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/JosueMolinaMorales/aoc/2024/internal/util"
+	"github.com/emirpasic/gods/sets/hashset"
 )
 
 type Gate struct {
@@ -19,10 +19,11 @@ type Gate struct {
 }
 
 func SolveDay24() {
-	fmt.Println(solvePartOne())
+	fmt.Println("Day 24 Part 1: ", solvePartOne())
+	fmt.Println("Day 24 Part 2: ", solvePartTwo())
 }
 
-func solvePartOne() int {
+func setup() map[string]*Gate {
 	input, err := util.LoadFileAsString("./inputs/day_24.txt")
 	if err != nil {
 		panic(err)
@@ -46,7 +47,12 @@ func solvePartOne() int {
 			O2:       p[2],
 		}
 	}
-	start := time.Now()
+
+	return gates
+}
+
+func solvePartOne() int {
+	gates := setup()
 	keys := []string{}
 	for k, v := range gates {
 		if k[0] == 'z' {
@@ -56,7 +62,7 @@ func solvePartOne() int {
 			continue
 		}
 		// Eval Exp
-		gates[k].Value = eval(gates[k].O1, gates[k].O2, gates[k].Operator, &gates)
+		gates[k].Value = eval(k, gates)
 	}
 
 	slices.SortFunc(keys, func(a, b string) int {
@@ -73,26 +79,83 @@ func solvePartOne() int {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Part 1 took: ", time.Since(start))
 	return int(ans)
 }
 
-func eval(op1, op2, operator string, gates *map[string]*Gate) int {
-	if (*gates)[op1].Value == -1 {
-		op1Gate := (*gates)[op1]
-		(*gates)[op1].Value = eval(op1Gate.O1, op1Gate.O2, op1Gate.Operator, gates)
+func solvePartTwo() string {
+	gates := setup()
+
+	highestZ := "z00"
+	for k, v := range gates {
+		if k[0] == 'z' && util.ToInt(strings.TrimLeft(k, "z")) > util.ToInt(strings.TrimLeft(highestZ, "z")) {
+			highestZ = k
+		}
+		if v.Value != -1 {
+			continue
+		}
+		// Eval Exp
+		gates[k].Value = eval(k, gates)
 	}
-	if (*gates)[op2].Value == -1 {
-		op2Gate := (*gates)[op2]
-		(*gates)[op2].Value = eval(op2Gate.O1, op2Gate.O2, op2Gate.Operator, gates)
+
+	wrong := hashset.New()
+	mainSet := hashset.New("x", "y", "z")
+	for k, v := range gates {
+		if k[0] == 'z' && v.Operator != "XOR" && k != highestZ {
+			wrong.Add(k)
+		}
+		if v.Operator == "XOR" &&
+			!mainSet.Contains(string(k[0])) &&
+			!mainSet.Contains(string(v.O1[0])) &&
+			!mainSet.Contains(string(v.O2[0])) {
+			wrong.Add(k)
+		}
+		if v.Operator == "AND" &&
+			v.O1 != "x00" && v.O2 != "x00" {
+			for _, subV := range gates {
+				if (k == subV.O1 || k == subV.O2) && subV.Operator != "OR" {
+					wrong.Add(k)
+				}
+			}
+		}
+		if v.Operator == "XOR" {
+			for _, subV := range gates {
+				if (k == subV.O1 || k == subV.O2) && subV.Operator == "OR" {
+					wrong.Add(k)
+				}
+			}
+		}
+	}
+
+	wv := []string{}
+	for _, n := range wrong.Values() {
+		wv = append(wv, n.(string))
+	}
+	slices.SortFunc(wv, func(a, b string) int {
+		return cmp.Compare(a, b)
+	})
+
+	return strings.Join(wv, ",")
+}
+
+func eval(k string, gates map[string]*Gate) int {
+	op1 := gates[k].O1
+	op2 := gates[k].O2
+	operator := gates[k].Operator
+	op1Gate := gates[op1]
+	op2Gate := gates[op2]
+	if op1Gate.Value == -1 {
+		op1Gate.Value = eval(op1, gates)
+	}
+	if gates[op2].Value == -1 {
+		op2Gate.Value = eval(op2, gates)
 	}
 	switch operator {
 	case "XOR":
-		return (*gates)[op1].Value ^ (*gates)[op2].Value
+		return op1Gate.Value ^ op2Gate.Value
 	case "AND":
-		return (*gates)[op1].Value & (*gates)[op2].Value
+		return op1Gate.Value & op2Gate.Value
 	case "OR":
-		return (*gates)[op1].Value | (*gates)[op2].Value
+		return op1Gate.Value | op2Gate.Value
 	}
 	return 0
 }
