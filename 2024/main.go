@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/JosueMolinaMorales/aoc/2024/internal/days/twentyfour"
+	"github.com/JosueMolinaMorales/aoc/2024/internal/days/twentyfive"
 )
 
 func main() {
@@ -28,5 +28,6 @@ func main() {
 	// twentyone.SolveDay21()
 	// twentytwo.SolveDay22()
 	// twentythree.SolveDay23()
-	twentyfour.SolveDay24()
+	// twentyfour.SolveDay24()
+	twentyfive.SolveDay25()
 }
