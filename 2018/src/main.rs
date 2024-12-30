@@ -17,5 +17,7 @@ fn main() {
     // solutions::solve_day_twelve();
     // solutions::solve_day_thirteen();
     // solutions::solve_day_fourteen();
-    solutions::solve_day_fifteen()
+    // solutions::solve_day_fifteen()
+    // solutions::solve_day_sixteen();
+    solutions::solve_day_seventeen();
 }
