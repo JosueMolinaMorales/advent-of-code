@@ -10,11 +10,11 @@ import (
 )
 
 func Day1() {
-	fmt.Println("2025 Day 1 Part 1:", part1("inputs/day_1/input.txt"))
-	fmt.Println("2025 Day 1 Part 2:", part2("inputs/day_1/input.txt"))
+	fmt.Println("2025 Day 1 Part 1:", day1Part1("inputs/day_1/input.txt"))
+	fmt.Println("2025 Day 1 Part 2:", day1Part2("inputs/day_1/input.txt"))
 }
 
-func part1(path string) int {
+func day1Part1(path string) int {
 	input, err := io.ReadFileAsLines(path)
 	if err != nil {
 		log.Fatalf("ERROR: 2025 Day 1 Part 1: %s", err)
@@ -54,9 +54,7 @@ func part1(path string) int {
 	return res
 }
 
-// 6431 TOO HIGH
-// 5450 TOO LOW
-func part2(path string) int {
+func day1Part2(path string) int {
 	input, err := io.ReadFileAsLines(path)
 	if err != nil {
 		log.Fatalf("ERROR: 2025 Day 1 Part 1: %s", err)
