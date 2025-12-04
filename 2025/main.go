@@ -3,7 +3,8 @@ package main
 import "github.com/JosueMolinaMorales/aoc/2025/internal/days"
 
 func main() {
-	days.Day1()
+	// days.Day1()
 	// days.Day2()
 	// days.Day3()
+	days.Day4()
 }

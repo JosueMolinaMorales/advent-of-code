@@ -22,3 +22,21 @@ func ReadFileAsString(path string) (string, error) {
 
 	return string(data), nil
 }
+
+func ReadFileAs2DArray(path string) ([][]string, error) {
+	data, err := ReadFileAsLines(path)
+	if err != nil {
+		return nil, err
+	}
+
+	arr := make([][]string, len(data))
+	for i, line := range data {
+		row := make([]string, len(line))
+		for j, ch := range line {
+			row[j] = string(ch)
+		}
+		arr[i] = row
+	}
+
+	return arr, nil
+}
