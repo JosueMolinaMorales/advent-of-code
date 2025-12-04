@@ -20,74 +20,70 @@ func day1Part1(path string) int {
 		log.Fatalf("ERROR: 2025 Day 1 Part 1: %s", err)
 	}
 
-	// Circular Dial. WIll be using mod
-	// Start at 50, spin the dial either Left or Right
-	// By a certain number. Numbers are 0 - 99, everytime it goes over or under it loops back around
-	// Count the number of times it hits 0
-	pos := 50
-	res := 0
-	for _, act := range input {
-		// Get the action and the distance
-		dir := string(act[0])
-		dist, err := strconv.Atoi(act[1:])
-		if err != nil {
-			log.Fatalf("ERROR: 2025 Day 1 Part 1: %s", err)
-		}
+	// Circular dial (0-99) starting at position 50
+	// Spin left (L) or right (R) by given distance
+	// Count the number of times the dial lands on 0
+	const dialSize = 100
+	const startPos = 50
 
-		if dir == "L" {
-			pos -= dist
-		}
-		if dir == "R" {
-			pos += dist
-		}
+	pos := startPos
+	count := 0
 
-		// Mod
-		pos = util.EuclideanMod(pos, 100)
+	for _, action := range input {
+		direction, distance := parseAction(action)
+		pos = (pos + direction*distance)
+		pos = util.EuclideanMod(pos, dialSize)
 
 		if pos == 0 {
-			res += 1
+			count++
 		}
-
-		// log.Printf("The dial is rotated %s to point at %d", act, pos)
-
 	}
-	return res
+
+	return count
+}
+
+// parseAction parses an action string like "L25" or "R10" into direction and distance
+// Returns -1 for left, +1 for right, and the numeric distance
+func parseAction(action string) (int, int) {
+	dir := action[0]
+	distance, err := strconv.Atoi(action[1:])
+	if err != nil {
+		log.Fatalf("ERROR: 2025 Day 1: invalid action: %s", err)
+	}
+
+	if dir == 'L' {
+		return -1, distance
+	}
+	return 1, distance
 }
 
 func day1Part2(path string) int {
 	input, err := io.ReadFileAsLines(path)
 	if err != nil {
-		log.Fatalf("ERROR: 2025 Day 1 Part 1: %s", err)
+		log.Fatalf("ERROR: 2025 Day 1 Part 2: %s", err)
 	}
 
-	// Now we want to count the number of times we pass 0 + the number of times we hit 0
-	// During an action we could pass 0 multiple times
-	// Would just be taking the dividend of (pos + dist) / 100
-	pos := 50
-	res := 0
-	for _, act := range input {
-		// Get the action and the distance
-		dir := string(act[0])
-		dist, err := strconv.Atoi(act[1:])
-		if err != nil {
-			log.Fatalf("ERROR: 2025 Day 1 Part 1: %s", err)
-		}
+	// Count every time the dial passes through or lands on 0
+	// Moving step-by-step to catch all passes
+	const dialSize = 100
+	const startPos = 50
 
-		var direction int
-		if dir == "L" {
-			direction = -1
-		} else {
-			direction = 1
-		}
+	pos := startPos
+	count := 0
 
-		for range dist {
-			pos = pos + (direction * 1)
-			pos = util.EuclideanMod(pos, 100)
+	for _, action := range input {
+		direction, distance := parseAction(action)
+
+		// Move one step at a time to count all passes through 0
+		for range distance {
+			pos = (pos + direction)
+			pos = util.EuclideanMod(pos, dialSize)
+
 			if pos == 0 {
-				res += 1
+				count++
 			}
 		}
 	}
 
-	return res
+	return count
 }
