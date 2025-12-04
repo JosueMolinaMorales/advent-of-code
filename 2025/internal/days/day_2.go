@@ -22,106 +22,111 @@ func day2Part1(path string) int {
 	}
 
 	ranges := strings.Split(input, ",")
-	// For each section, we want to find the invalid IDs
-	// An invalid ID is one where the numbers repeat: 22, 1111, 1212, 4545, etc.
-	// SO they will only be even length
+	// Find invalid IDs where the number splits into two identical halves
+	// Examples: 22, 1111, 1212, 4545
+	sum := 0
 
-	// First method: convert each end range to number, loop through the range, and
-	// find all numbers that repeat
-	invalidIDs := make([]string, 0)
 	for _, r := range ranges {
-		// Convert the numbers
-		endings := strings.Split(r, "-")
-		start, err := strconv.Atoi(endings[0])
-		if err != nil {
-			log.Fatalf("ERROR: 2025 Day 2 Part 1: %s", err)
-		}
-		end, err := strconv.Atoi(endings[1])
-		if err != nil {
-			log.Fatalf("ERROR: 2025 Day 2 Part 1: %s", err)
-		}
+		start, end := parseRange(r)
 
 		for i := start; i <= end; i++ {
-			numStr := strconv.Itoa(i)
-			mid := len(numStr) / 2
-
-			a := numStr[0:mid]
-			b := numStr[mid:]
-
-			if a == b {
-				invalidIDs = append(invalidIDs, numStr)
+			if hasRepeatingHalves(i) {
+				sum += i
 			}
 		}
 	}
 
-	res := 0
-	for _, numStr := range invalidIDs {
-		num, err := strconv.Atoi(numStr)
-		if err != nil {
-			log.Fatalf("ERROR: 2025 Day 2 Part 1: %s", err)
-		}
-		res += num
+	return sum
+}
+
+// parseRange parses a range string like "10-20" into start and end integers
+func parseRange(rangeStr string) (int, int) {
+	parts := strings.Split(rangeStr, "-")
+	start, err := strconv.Atoi(parts[0])
+	if err != nil {
+		log.Fatalf("ERROR: 2025 Day 2: invalid range start: %s", err)
+	}
+	end, err := strconv.Atoi(parts[1])
+	if err != nil {
+		log.Fatalf("ERROR: 2025 Day 2: invalid range end: %s", err)
+	}
+	return start, end
+}
+
+// hasRepeatingHalves checks if a number's string representation
+// can be split into two identical halves
+func hasRepeatingHalves(num int) bool {
+	numStr := strconv.Itoa(num)
+	length := len(numStr)
+
+	// Can only split evenly if length is even
+	if length%2 != 0 {
+		return false
 	}
 
-	return res
+	mid := length / 2
+	return numStr[:mid] == numStr[mid:]
 }
 
 func day2Part2(path string) int {
 	input, err := io.ReadFileAsString(path)
 	if err != nil {
-		log.Fatalf("ERROR: 2025 Day 2 Part 1: %s", err)
+		log.Fatalf("ERROR: 2025 Day 2 Part 2: %s", err)
 	}
+
 	ranges := strings.Split(input, ",")
-	// Now an invalid ID is one where there is a sequence of numbers
-	// that repeats at least twice: 11, 1212, 135135, etc.
-	invalidIDs := make(map[string]bool)
+	// Find invalid IDs where a sequence repeats at least twice
+	// Examples: 11, 1212, 135135
+	invalidIDs := make(map[int]bool)
+
 	for _, r := range ranges {
-		// Convert the numbers
-		endings := strings.Split(r, "-")
-		start, err := strconv.Atoi(endings[0])
-		if err != nil {
-			log.Fatalf("ERROR: 2025 Day 2 Part 1: %s", err)
-		}
-		end, err := strconv.Atoi(endings[1])
-		if err != nil {
-			log.Fatalf("ERROR: 2025 Day 2 Part 1: %s", err)
-		}
+		start, end := parseRange(r)
+
 		for i := start; i <= end; i++ {
-			// For a given string length, i want to find the GCF of the length
-			// this GCF will have to be the length of the sequence that is being repeated
-			numStr := strconv.Itoa(i)
-			length := len(numStr)
-			tried := map[int]bool{}
-			for j := 1; j <= length/2; j++ {
-				gcf := util.GCF(length, j)
-				// Check to see if we have tried this already
-				if _, ok := tried[gcf]; ok {
-					continue
-				} else {
-					tried[gcf] = true
-				}
-				// Create a string with the substring
-				sub := numStr[:gcf]
-				newStrArr := []string{}
-				for k := 0; k < (length / j); k++ {
-					newStrArr = append(newStrArr, sub)
-				}
-				newStr := strings.Join(newStrArr, "")
-				if newStr == numStr {
-					invalidIDs[newStr] = true
-				}
+			if hasRepeatingPattern(i) {
+				invalidIDs[i] = true
 			}
 		}
 	}
 
-	res := 0
-	for k := range invalidIDs {
-		num, err := strconv.Atoi(k)
-		if err != nil {
-			log.Fatalf("ERROR: 2025 Day 2 Part 1: %s", err)
-		}
-		res += num
+	sum := 0
+	for num := range invalidIDs {
+		sum += num
 	}
 
-	return res
+	return sum
+}
+
+// hasRepeatingPattern checks if a number consists of a repeating pattern
+// For example: 11 (1 repeats), 1212 (12 repeats), 135135 (135 repeats)
+func hasRepeatingPattern(num int) bool {
+	numStr := strconv.Itoa(num)
+	length := len(numStr)
+
+	tried := make(map[int]bool)
+
+	// Try different pattern lengths (from 1 to half the total length)
+	for patternLen := 1; patternLen <= length/2; patternLen++ {
+		gcf := util.GCF(length, patternLen)
+
+		// Skip if we've already tried this GCF
+		if tried[gcf] {
+			continue
+		}
+		tried[gcf] = true
+
+		// Check if the pattern repeats to form the entire number
+		if length%gcf == 0 {
+			pattern := numStr[:gcf]
+			repeats := length / gcf
+
+			// Build expected string by repeating the pattern
+			expected := strings.Repeat(pattern, repeats)
+			if expected == numStr {
+				return true
+			}
+		}
+	}
+
+	return false
 }
