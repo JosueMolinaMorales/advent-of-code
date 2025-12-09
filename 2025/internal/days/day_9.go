@@ -3,6 +3,7 @@ package days
 import (
 	"fmt"
 	"math"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -64,114 +65,128 @@ func day9Part1(path string) int {
 func day9Part2(path string) int {
 	points, _ := parsePoints(path)
 
-	fmt.Printf("Part 2: Processing %d red tiles...\n", len(points))
+	// Coordinate compression: reduce large sparse grid to only relevant coordinates
+	xCoords := make(map[int]bool)
+	yCoords := make(map[int]bool)
+	for _, p := range points {
+		xCoords[p.x] = true
+		yCoords[p.y] = true
+	}
 
-	// Build a map of green tiles (tiles on the path between consecutive red tiles)
-	// and tiles inside the polygon formed by the red tiles
+	// Convert to sorted slices
+	xList := make([]int, 0, len(xCoords))
+	for x := range xCoords {
+		xList = append(xList, x)
+	}
+	yList := make([]int, 0, len(yCoords))
+	for y := range yCoords {
+		yList = append(yList, y)
+	}
+	sort.Ints(xList)
+	sort.Ints(yList)
+
+	// Create mappings
+	xToCompressed := make(map[int]int)
+	compressedToX := make(map[int]int)
+	for i, x := range xList {
+		xToCompressed[x] = i
+		compressedToX[i] = x
+	}
+
+	yToCompressed := make(map[int]int)
+	compressedToY := make(map[int]int)
+	for i, y := range yList {
+		yToCompressed[y] = i
+		compressedToY[i] = y
+	}
+
+	// Convert points to compressed coordinates
+	compressedPoints := make([]Point, len(points))
+	for i, p := range points {
+		compressedPoints[i] = Point{xToCompressed[p.x], yToCompressed[p.y]}
+	}
+
+	// Build boundary edges in compressed space (all tiles on polygon perimeter)
 	greenTiles := make(map[Point]bool)
 
-	fmt.Println("Step 1/3: Building edges between red tiles...")
-	// Add all points on edges between consecutive red tiles
-	for i := 0; i < len(points); i++ {
-		p1 := points[i]
-		p2 := points[(i+1)%len(points)]
+	for i := 0; i < len(compressedPoints); i++ {
+		p1 := compressedPoints[i]
+		p2 := compressedPoints[(i+1)%len(compressedPoints)]
 
-		// Add all points on the line between p1 and p2
 		if p1.x == p2.x {
-			// Vertical line
+			// Vertical line in compressed space
 			minY, maxY := p1.y, p2.y
 			if minY > maxY {
 				minY, maxY = maxY, minY
 			}
-			for y := minY; y <= maxY; y++ {
-				greenTiles[Point{p1.x, y}] = true
+			for cy := minY; cy <= maxY; cy++ {
+				greenTiles[Point{p1.x, cy}] = true
 			}
 		} else {
-			// Horizontal line
+			// Horizontal line in compressed space
 			minX, maxX := p1.x, p2.x
 			if minX > maxX {
 				minX, maxX = maxX, minX
 			}
-			for x := minX; x <= maxX; x++ {
-				greenTiles[Point{x, p1.y}] = true
+			for cx := minX; cx <= maxX; cx++ {
+				greenTiles[Point{cx, p1.y}] = true
 			}
 		}
 	}
 
-	// Find all tiles inside the polygon using scanline algorithm
-	fmt.Println("Step 2/3: Finding interior tiles using ray casting...")
-	minX, maxX := points[0].x, points[0].x
-	minY, maxY := points[0].y, points[0].y
-	for _, p := range points {
-		if p.x < minX {
-			minX = p.x
-		}
-		if p.x > maxX {
-			maxX = p.x
-		}
-		if p.y < minY {
-			minY = p.y
-		}
-		if p.y > maxY {
-			maxY = p.y
-		}
-	}
-
-	// For each scanline, find interior points using ray casting
-	totalRows := maxY - minY + 1
-	for y := minY; y <= maxY; y++ {
-		if (y-minY)%100 == 0 {
-			fmt.Printf("  Scanning row %d/%d (%.1f%%)\n", y-minY+1, totalRows, float64(y-minY+1)*100.0/float64(totalRows))
-		}
-		for x := minX; x <= maxX; x++ {
-			p := Point{x, y}
-			if greenTiles[p] {
+	// Pre-compute all interior points in compressed space
+	for cy := 0; cy < len(yList); cy++ {
+		for cx := 0; cx < len(xList); cx++ {
+			cp := Point{cx, cy}
+			if greenTiles[cp] {
 				continue
 			}
-			if isInside(p, points) {
-				greenTiles[p] = true
+			// Check if this compressed point is inside using original coordinates
+			origP := Point{compressedToX[cx], compressedToY[cy]}
+			if isInside(origP, points) {
+				greenTiles[cp] = true
 			}
 		}
 	}
 
-	fmt.Printf("Step 3/3: Checking %d pairs of red tiles for valid rectangles...\n", len(points)*(len(points)-1)/2)
-	// Now find the largest rectangle where opposite corners are red tiles
-	// and all tiles in between are green or red
+	// Find the largest rectangle where corners are red tiles and all interior is green
 	maxArea := 0
-	pairsChecked := 0
-	totalPairs := len(points) * (len(points) - 1) / 2
+	for i := 0; i < len(compressedPoints); i++ {
+		for j := i + 1; j < len(compressedPoints); j++ {
+			cp1, cp2 := compressedPoints[i], compressedPoints[j]
 
-	for i := 0; i < len(points); i++ {
-		for j := i + 1; j < len(points); j++ {
-			pairsChecked++
-			if pairsChecked%10000 == 0 {
-				fmt.Printf("  Checked %d/%d pairs (%.1f%%), current max area: %d\n",
-					pairsChecked, totalPairs, float64(pairsChecked)*100.0/float64(totalPairs), maxArea)
+			// Get compressed bounds
+			minCX, maxCX := cp1.x, cp2.x
+			if minCX > maxCX {
+				minCX, maxCX = maxCX, minCX
 			}
-			p1, p2 := points[i], points[j]
-
-			// Check if rectangle only contains green/red tiles
-			minRectX, maxRectX := p1.x, p2.x
-			if minRectX > maxRectX {
-				minRectX, maxRectX = maxRectX, minRectX
-			}
-			minRectY, maxRectY := p1.y, p2.y
-			if minRectY > maxRectY {
-				minRectY, maxRectY = maxRectY, minRectY
+			minCY, maxCY := cp1.y, cp2.y
+			if minCY > maxCY {
+				minCY, maxCY = maxCY, minCY
 			}
 
+			// Check if all boundary points in compressed space are green
 			valid := true
-			for x := minRectX; x <= maxRectX && valid; x++ {
-				for y := minRectY; y <= maxRectY && valid; y++ {
-					if !greenTiles[Point{x, y}] {
-						valid = false
-					}
+
+			// Check top and bottom edges
+			for cx := minCX; cx <= maxCX && valid; cx++ {
+				if !greenTiles[Point{cx, minCY}] || !greenTiles[Point{cx, maxCY}] {
+					valid = false
+				}
+			}
+
+			// Check left and right edges (excluding corners already checked)
+			for cy := minCY + 1; cy < maxCY && valid; cy++ {
+				if !greenTiles[Point{minCX, cy}] || !greenTiles[Point{maxCX, cy}] {
+					valid = false
 				}
 			}
 
 			if valid {
-				// Add 1 to include the corner tiles
-				area := (maxRectX - minRectX + 1) * (maxRectY - minRectY + 1)
+				// Calculate actual area using original (uncompressed) coordinates
+				width := compressedToX[maxCX] - compressedToX[minCX] + 1
+				height := compressedToY[maxCY] - compressedToY[minCY] + 1
+				area := width * height
 				if area > maxArea {
 					maxArea = area
 				}
@@ -179,7 +194,6 @@ func day9Part2(path string) int {
 		}
 	}
 
-	fmt.Printf("Completed! Checked %d pairs total.\n", pairsChecked)
 	return maxArea
 }
 
