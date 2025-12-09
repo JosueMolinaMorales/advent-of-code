@@ -1,8 +1,7 @@
-use std::collections::HashSet;
-
 use regex::Regex;
+use std::collections::{HashMap, HashSet};
 
-use crate::utils::{direction::Direction, point::Point};
+use crate::utils::file_loader::FileLoader;
 
 const SAMPLE_INPUT: &str = r#"x=495, y=2..7
 y=7, x=495..501
@@ -13,129 +12,223 @@ x=498, y=10..13
 x=504, y=10..13
 y=13, x=498..504"#;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct Water {
-    direction: Direction,
-    pos: Point,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Tile {
+    Clay,
+    Sand,
+    FlowingWater, // |
+    SettledWater, // ~
 }
+
 pub fn solve_day_seventeen() {
-    let re = Regex::new(r"\d+").unwrap();
-    let mut clays = HashSet::new();
+    let lines = FileLoader::new("./inputs/day_17.txt".into()).read_lines();
 
-    let mut max_y = 0;
-    let mut max_x = 0;
-    SAMPLE_INPUT.split("\n").for_each(|line| {
-        let nums = re
-            .find_iter(line)
-            .map(|s| s.as_str().parse::<i32>().unwrap())
-            .collect::<Vec<i32>>();
-        if line.as_bytes()[0] == b"x"[0] {
-            if nums[0] > max_y {
-                max_y = nums[0] + 1
-            }
-            if nums[2] > max_x {
-                max_x = nums[2] + 1
-            }
-            for i in nums[1]..=nums[2] {
-                clays.insert((nums[0], i));
-            }
-        } else {
-            if nums[0] > max_x {
-                max_x = nums[0] + 1
-            }
-            if nums[2] > max_y {
-                max_y = nums[2] + 1
-            }
-            for i in nums[1]..=nums[2] {
-                clays.insert((i, nums[0]));
-            }
-        }
-    });
-    let mut grid = Vec::new();
-
-    for i in 0..max_x {
-        let mut row = Vec::new();
-        for j in 0..max_y {
-            if clays.contains(&(j, i)) {
-                row.push("#")
-            } else {
-                row.push(".")
-            }
-        }
-        grid.push(row)
-    }
-
-    // Simulate the water falling
-    // Goes down until it hits a surface
-    // once it hits a surface, it spreads to the left & right
-    // once it can no longer spread left, right, it goes up
-    let mut curr_water = Water {
-        direction: Direction::South,
-        pos: Point::new(0, 500),
-    };
-    let mut moveable_water: HashSet<Water> = HashSet::from([curr_water]);
-    let mut i = 0;
-    while i < 20 {
-        for mut w in moveable_water.clone() {
-            moveable_water.extend(move_water(&mut w, &grid, &moveable_water));
-        }
-        moveable_water = moveable_water
-            .iter()
-            .filter(|w| grid[w.pos.x as usize][w.pos.y as usize] != "#")
-            .cloned()
-            .collect();
-        i += 1
-    }
-    println!("{:#?}", moveable_water);
-    print_map(max_x, max_y, &grid, &moveable_water);
+    println!("Part 1: {}", part_one(&lines));
+    println!("Part 2: {}", part_two(&lines));
 }
 
-fn move_water(
-    water: &mut Water,
-    map: &Vec<Vec<&str>>,
-    moveable_water: &HashSet<Water>,
-) -> Vec<Water> {
-    let d: Point = water.direction.into();
-    let (dx, dy) = (water.pos.x + d.x, water.pos.y + d.y);
+fn part_one(lines: &[String]) -> usize {
+    let (grid, _clay_positions, min_y, max_y) = parse_input_and_simulate(lines);
 
-    // Bound Check
-    if dx < 0 || dx >= map.len().try_into().unwrap() || dy < 0 || dy >= map[0].len() as i32 {
-        return vec![];
-    }
-    if map[dx as usize][dy as usize] == "#"
-        || moveable_water.contains(&Water {
-            direction: water.direction,
-            pos: Point::new(dx, dy),
+    // Count all water tiles (both flowing and settled) within y bounds
+    grid.iter()
+        .filter(|&(&(_, y), tile)| {
+            y >= min_y && y <= max_y && (*tile == Tile::FlowingWater || *tile == Tile::SettledWater)
         })
-    {
-        // Expand to the left & right
-        return vec![
-            Water {
-                direction: Direction::West,
-                pos: Point::new(water.pos.x, water.pos.y - 1),
-            },
-            Water {
-                direction: Direction::East,
-                pos: Point::new(water.pos.x, water.pos.y + 1),
-            },
-        ];
-    }
-
-    return vec![Water {
-        direction: water.direction.clone(),
-        pos: Point::new(dx, dy),
-    }];
+        .count()
 }
 
-fn print_map(max_x: i32, max_y: i32, grid: &Vec<Vec<&str>>, water: &HashSet<Water>) {
-    let mut grid = grid.clone();
-    for w in water {
-        grid[w.pos.x as usize][w.pos.y as usize] = "~"
-    }
-    for i in 0..max_x {
-        for j in 450..max_y {
-            print!("{}", grid[i as usize][j as usize])
+fn part_two(lines: &[String]) -> usize {
+    let (grid, _, min_y, max_y) = parse_input_and_simulate(lines);
+
+    // Count only settled water within y bounds
+    grid.iter()
+        .filter(|&(&(_, y), tile)| y >= min_y && y <= max_y && *tile == Tile::SettledWater)
+        .count()
+}
+
+fn parse_input_and_simulate(
+    lines: &[String],
+) -> (HashMap<(i32, i32), Tile>, HashSet<(i32, i32)>, i32, i32) {
+    let re = Regex::new(r"(\w)=(\d+), (\w)=(\d+)..(\d+)").unwrap();
+    let mut clay_positions = HashSet::new();
+
+    for line in lines {
+        if let Some(caps) = re.captures(line) {
+            let first_coord = caps[1].chars().next().unwrap();
+            let first_val: i32 = caps[2].parse().unwrap();
+            let second_start: i32 = caps[4].parse().unwrap();
+            let second_end: i32 = caps[5].parse().unwrap();
+
+            if first_coord == 'x' {
+                for y in second_start..=second_end {
+                    clay_positions.insert((first_val, y));
+                }
+            } else {
+                for x in second_start..=second_end {
+                    clay_positions.insert((x, first_val));
+                }
+            }
         }
-        println!()
+    }
+
+    // Find bounds (only y bounds matter for counting)
+    let min_y = *clay_positions.iter().map(|(_, y)| y).min().unwrap();
+    let max_y = *clay_positions.iter().map(|(_, y)| y).max().unwrap();
+
+    // Create grid with clay positions
+    let mut grid: HashMap<(i32, i32), Tile> = HashMap::new();
+    for &pos in &clay_positions {
+        grid.insert(pos, Tile::Clay);
+    }
+
+    // Start water flow simulation from spring at (500, 0)
+    flow(500, 0, &mut grid, max_y);
+
+    (grid, clay_positions, min_y, max_y)
+}
+
+fn flow(x: i32, y: i32, grid: &mut HashMap<(i32, i32), Tile>, max_y: i32) -> bool {
+    // If we're beyond max depth, stop
+    if y > max_y {
+        return false;
+    }
+
+    let pos = (x, y);
+
+    // If this position already has water or clay, we're done
+    if let Some(tile) = grid.get(&pos) {
+        match tile {
+            Tile::Clay => return true,          // Hit a solid surface
+            Tile::FlowingWater => return false, // Already visited, prevent infinite loops
+            Tile::SettledWater => return true,  // Hit settled water, treat as solid
+            _ => {}
+        }
+    }
+
+    // Mark this position as flowing water
+    grid.insert(pos, Tile::FlowingWater);
+
+    // Try to flow down first
+    let below_is_solid = flow(x, y + 1, grid, max_y);
+
+    if !below_is_solid {
+        // Water flows down freely, can't settle here
+        return false;
+    }
+
+    // Water can't flow down, try to spread horizontally
+    let left_is_solid = flow_horizontal(x, y, -1, grid, max_y);
+    let right_is_solid = flow_horizontal(x, y, 1, grid, max_y);
+
+    if left_is_solid && right_is_solid {
+        // Water is contained on both sides, settle it
+        settle_row(x, y, grid);
+        return true;
+    }
+
+    // Water flows off at least one side, stays as flowing water
+    false
+}
+
+fn flow_horizontal(
+    x: i32,
+    y: i32,
+    dx: i32,
+    grid: &mut HashMap<(i32, i32), Tile>,
+    max_y: i32,
+) -> bool {
+    let mut current_x = x + dx;
+
+    loop {
+        let pos = (current_x, y);
+
+        // Check if we hit clay
+        if let Some(Tile::Clay) = grid.get(&pos) {
+            return true; // Hit a wall
+        }
+
+        // Check if this position already has settled water (acts as a wall)
+        if let Some(Tile::SettledWater) = grid.get(&pos) {
+            return true;
+        }
+
+        // Mark as flowing water
+        grid.insert(pos, Tile::FlowingWater);
+
+        // Check what's below this position
+        let below = (current_x, y + 1);
+
+        // Check if there's something solid below
+        match grid.get(&below) {
+            Some(Tile::Clay) | Some(Tile::SettledWater) => {
+                // Solid below, continue spreading horizontally
+                current_x += dx;
+            }
+            _ => {
+                // Nothing solid below, water falls down
+                flow(current_x, y + 1, grid, max_y);
+
+                // After flowing down, check if it settled and now provides support
+                match grid.get(&below) {
+                    Some(Tile::SettledWater) => {
+                        // Water below settled, continue spreading
+                        current_x += dx;
+                    }
+                    _ => {
+                        // Water flows off the edge
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn settle_row(x: i32, y: i32, grid: &mut HashMap<(i32, i32), Tile>) {
+    // Settle water from x to the left until we hit clay
+    let mut current_x = x;
+    loop {
+        let pos = (current_x, y);
+        if let Some(Tile::Clay) = grid.get(&pos) {
+            break;
+        }
+        grid.insert(pos, Tile::SettledWater);
+        current_x -= 1;
+    }
+
+    // Settle water from x to the right until we hit clay
+    current_x = x + 1;
+    loop {
+        let pos = (current_x, y);
+        if let Some(Tile::Clay) = grid.get(&pos) {
+            break;
+        }
+        grid.insert(pos, Tile::SettledWater);
+        current_x += 1;
+    }
+}
+
+#[allow(dead_code)]
+fn print_grid(grid: &HashMap<(i32, i32), Tile>, clay_positions: &HashSet<(i32, i32)>) {
+    let min_x = clay_positions.iter().map(|(x, _)| x).min().unwrap() - 2;
+    let max_x = clay_positions.iter().map(|(x, _)| x).max().unwrap() + 2;
+    let min_y = clay_positions.iter().map(|(_, y)| y).min().unwrap() - 1;
+    let max_y = clay_positions.iter().map(|(_, y)| y).max().unwrap() + 1;
+
+    for y in min_y..=max_y {
+        for x in min_x..=max_x {
+            if x == 500 && y == 0 {
+                print!("+");
+            } else {
+                match grid.get(&(x, y)) {
+                    Some(Tile::Clay) => print!("#"),
+                    Some(Tile::FlowingWater) => print!("|"),
+                    Some(Tile::SettledWater) => print!("~"),
+                    _ => print!("."),
+                }
+            }
+        }
+        println!();
     }
 }
