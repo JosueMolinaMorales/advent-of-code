@@ -10,5 +10,6 @@ func main() {
 	// days.Day5()
 	// days.Day6()
 	// days.Day7()
-	days.Day8()
+	// days.Day8()
+	days.Day9()
 }
